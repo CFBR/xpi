@@ -86,9 +86,36 @@ def write_config(data):
 
 # --------------------------------------------------------------- script ---
 
+def _board_from_source(path):
+    """Board tag from what a script imports (user scripts land here)."""
+    try:
+        with open(path) as fh:
+            src = fh.read()
+    except OSError:
+        return ""
+    if "unicornhat" in src and "microdotphat" in src:
+        return "both"
+    if "microdotphat" in src:
+        return "microdot-phat"
+    if "unicornhat" in src:
+        return "unicorn-hat"
+    return "generic"
+
+
+def _board_from_dir(directory):
+    for tag in (("/examples/phat", "unicorn phat 8x8"),
+                ("/examples/hat", "unicorn-hat 16x8"),
+                ("/microdot-phat/examples", "microdot-phat"),
+                ("/unicorn-hat/examples", "unicorn-hat")):
+        if tag[0] in directory:
+            return tag[1]
+    return "generic"
+
+
 def scan_scripts():
     """Registry keyed by filename stem; first scan-dir occurrence wins."""
     registry = {}
+    BOARD_TAGS.clear()
     for directory in SCAN_DIRS:
         if not os.path.isdir(directory):
             continue
@@ -101,7 +128,13 @@ def scan_scripts():
                       % (stem, registry[stem]))
                 continue
             registry[stem] = os.path.join(directory, name)
+            BOARD_TAGS[stem] = (
+                _board_from_dir(directory) if "/scripts/" in directory
+                else _board_from_source(registry[stem]))
     return registry
+
+
+BOARD_TAGS = {}
 
 
 SCRIPT_REGISTRY = {}
@@ -139,7 +172,9 @@ def start_child(stem, args=()):
     global _child, _child_args, _child_started
     path = SCRIPT_REGISTRY[stem]
     with _sup_lock:
-        stop_child()
+        # stop old child and blank the board so its last frame
+        # doesn't bleed under the new script
+        clear_board()
         with _log_lock:
             _log_chunks.clear()
         _child = subprocess.Popen(
@@ -212,6 +247,7 @@ def status():
         "started": started,
         "boot": read_config().get("boot"),
         "scripts": sorted(SCRIPT_REGISTRY),
+        "boards": BOARD_TAGS,
         "revision": _read_state().get("revision"),
         "log": log_text(),
     }
@@ -266,6 +302,14 @@ class Handler(http.server.BaseHTTPRequestHandler):
         try:
             params = self.parse_query(parse)
             action = (params.pop("action", [None])[0] or "").strip()
+            accept = self.headers.get("Accept", "")
+            # A browser hitting /?action=... (e.g. a pushed/shareable URL)
+            # gets the control page — it applies the action client-side.
+            # A plain curl (Accept */*) executes the action as usual.
+            if action and "text/html" in accept \
+                    and "application/json" not in accept:
+                self.serve_index()
+                return
             SCRIPT_REGISTRY.clear()
             SCRIPT_REGISTRY.update(scan_scripts())
             if not action:

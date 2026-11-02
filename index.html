@@ -6,101 +6,129 @@
 <title>xpi display control</title>
 <style>
   :root { color-scheme: light dark; }
-  body { font-family: system-ui, sans-serif; margin: 1rem auto; max-width: 40rem; padding: 0 1rem; }
-  table { border-collapse: collapse; width: 100%; }
-  td, th { border-bottom: 1px solid #8884; padding: .35rem .5rem; text-align: left; }
-  button { padding: .25rem .8rem; }
-  fieldset { margin: 1rem 0; border: 1px solid #8884; }
-  pre { background: #8881; padding: .5rem; overflow-x: auto; white-space: pre-wrap; }
-  .running { font-weight: bold; }
+  * { box-sizing: border-box; }
+  body { font-family: system-ui, sans-serif; margin: .4rem; font-size: 14px; }
+  h1 { font-size: 16px; margin: .2rem 0; }
+  button { padding: .15rem .55rem; font-size: 13px; }
+  select, input { font-size: 13px; padding: .15rem .35rem; }
+  .row { display: flex; flex-wrap: wrap; gap: .35rem; align-items: center; margin: .3rem 0; }
+  nav button { cursor: pointer; }
+  nav button.on { font-weight: bold; text-decoration: underline; }
+  #grid { display: flex; flex-wrap: wrap; gap: .3rem; }
+  .chip { border: 1px solid #8886; border-radius: 3px; padding: .15rem .45rem;
+          font-size: 12.5px; background: transparent; color: inherit; cursor: pointer; }
+  .chip.running { border-width: 2px; font-weight: bold; }
+  .info { font-size: 12px; opacity: .75; margin: 0; }
+  pre { margin: .2rem 0; font-size: 11.5px; max-height: 4.4em; overflow: hidden;
+        white-space: pre-wrap; background: #8882; padding: .3rem; }
+  .btag { opacity: .6; font-size: 11px; margin-left: .3rem; }
 </style>
 </head>
 <body>
-<h1>xpi display control</h1>
+<h1>xpi display control <span id="stat" class="info"></span></h1>
 
-<table id="scripts"><tbody></tbody></table>
-
-<p>
+<div class="row">
   <button onclick="act('stop')">Stop</button>
-  <button onclick="act('clear')">Clear board</button>
-</p>
+  <button onclick="act('clear')">Clear</button>
+  <label>boot
+    <select id="boot"></select>
+    <button onclick="saveBoot()">Save</button>
+  </label>
+</div>
 
-<fieldset>
-  <legend>Boot script (launches at boot)</legend>
-  <select id="boot"></select>
-  <button onclick="saveBoot()">Save boot</button>
-</fieldset>
+<div class="row">
+  <form onsubmit="return send()" style="display:contents">
+    <label>message <input id="msg" size="14" placeholder="text"></label>
+    <label>timer <input id="secs" type="number" min="0" style="width:4em" placeholder="sec"></label>
+    <button>Send</button>
+  </form>
+</div>
 
-<fieldset>
-  <legend>Send message / timer</legend>
-  <label>text <input id="msg" size="24" placeholder="message"></label>
-  <label>seconds <input id="secs" type="number" min="0" style="width:5em" placeholder="optional"></label>
-  <button onclick="send()">Send</button>
-</fieldset>
-
-<pre id="info"></pre>
+<div class="row" id="boards"></div>
+<div id="grid"></div>
+<pre id="log" class="info"></pre>
 
 <script>
 "use strict";
-var running = null;
+var state = null, board = "all";
+var boardMap = {"microdot-phat": "microdot-phat",
+                "unicorn phat 8x8": "unicorn-phat",
+                "unicorn-hat 16x8": "unicorn-hat",
+                "unicorn-hat": "unicorn-hat", "both": "microdot-phat",
+                "generic": "all"};
+
+function boardOf(s) { return boardMap[s] || "all"; }
+
+function matches(tag) {
+  if (board === "all") return true;
+  if (board === "unicorn") return tag === "unicorn-hat" || tag === "unicorn-phat";
+  return tag === board;
+}
 
 async function refresh() {
-  var s;
-  try { s = await (await fetch('/action=status')).json(); } catch (e) { return; }
-  running = s.running;
-
-  var tbody = document.querySelector('#scripts tbody');
-  tbody.innerHTML = '';
-  (s.scripts || []).forEach(function (name) {
-    var tr = document.createElement('tr');
-    if (name === running) tr.className = 'running';
-    var isRunning = name === running && s.pid;
-    tr.innerHTML = '<td>' + name + '</td>' +
-      '<td><button onclick="run(this)" data-name="' + name + '">' +
-        (isRunning ? 'restart' : 'Run') + '</button></td>' +
-      '<td>' + (isRunning ? ('&nbsp; pid ' + s.pid) : '') + '</td>';
-    tbody.appendChild(tr);
-  });
-
+  try { state = await (await fetch('/action=status')).json(); } catch (e) { return; }
+  document.getElementById('stat').textContent =
+    '— running: ' + (state.running ? (state.running + ' pid ' + state.pid) : 'none')
+    + ' | boot: ' + (state.boot || 'none');
   var sel = document.getElementById('boot');
   if (!sel.options.length) {
     var none = document.createElement('option');
     none.value = 'none'; none.textContent = '(nothing)';
     sel.appendChild(none);
-    (s.scripts || []).forEach(function (name) {
+    (state.scripts || []).forEach(function (n) {
       var opt = document.createElement('option');
-      opt.value = name; opt.textContent = name;
-      sel.appendChild(opt);
-    });
+      opt.value = n; opt.textContent = n; sel.appendChild(opt); });
   }
-  sel.value = s.boot || 'none';
+  sel.value = state.boot || 'none';
 
-  var lines = [];
-  if (running) {
-    var up = '';
-    if (s.started) {
-      var mins = Math.floor((Date.now() - Date.parse(s.started)) / 60000);
-      up = ', up ' + (mins >= 60 ? Math.floor(mins/60) + ' h '
-                                               : '') + (mins % 60) + ' min';
-    }
-    lines.push('running: ' + running + ' (pid ' + s.pid + up + ')');
-  } else {
-    lines.push('nothing running');
-  }
-  lines.push('state revision: ' + s.revision + ', boot: ' + (s.boot || 'none'));
-  lines.push('--- last output ---');
-  lines.push(s.log || '');
-  document.getElementById('info').textContent = lines.join('\n');
+  var boardTags = state.boards || {};
+  var uniq = ["all"].concat(Object.keys(boardTags)
+    .map(function (k) { return boardOf(boardTags[k]); })
+    .filter(function (t) { return t !== "all"; })
+    .reduce(function (a, t) { if (a.indexOf(t) < 0) a.push(t); return a; }, []));
+  var nav = document.getElementById("boards");
+  nav.innerHTML = "";
+  uniq.forEach(function (t) {
+    var b = document.createElement("button");
+    b.textContent = t;
+    if (t === board) b.className = "on";
+    b.onclick = function () { board = t; renderJ(); };
+    nav.appendChild(b);
+  });
+  renderJ();
 }
+
+function renderJ() {
+  var grid = document.getElementById("grid");
+  grid.innerHTML = "";
+  (state.scripts || []).forEach(function (n) {
+    var tag = boardOf((state.boards || {})[n]);
+    var ok = (board === "all")
+      || (board === "unicorn" ? (tag === "unicorn-hat" || tag === "unicorn-phat")
+                              : tag === board);
+    if (!ok) return;
+    var b = document.createElement("button");
+    b.className = "chip" + (n === state.running ? " running" : "");
+    b.textContent = n;
+    if (tag === "generic" || tag === "both") {
+      var sp = document.createElement("span");
+      sp.className = "btag"; sp.textContent = tag;
+      b.appendChild(sp);
+    }
+    b.onclick = function () { act("switch", "script=" + encodeURIComponent(n)); };
+    grid.appendChild(b);
+  });
+  var log = document.getElementById("log");
+  log.textContent = "last output — " + ((state.log || "").trim() || "(none)");
+}
+
+function pushQS(qs) { history.pushState({}, "", "/?" + qs); }
 
 async function act(action, extra) {
-  var url = 'action=' + action + (extra ? '&' + extra : '');
-  await fetch(url);
+  var qs = "action=" + action + (extra ? "&" + extra : "");
+  pushQS(qs);
+  await fetch('/?' + qs, {headers: {"Accept": "application/json"}});
   refresh();
-}
-
-function run(btn) {
-  act('switch', 'script=' + encodeURIComponent(btn.dataset.name));
 }
 
 function saveBoot() {
@@ -109,17 +137,28 @@ function saveBoot() {
 }
 
 function send() {
-  var text = document.getElementById('msg').value;
-  var secs = document.getElementById('secs').value;
-  if (text) {
-    act('update', 'script=message&message=' + encodeURIComponent(text));
-  } else if (secs) {
-    act('update', 'script=timer&seconds=' + encodeURIComponent(secs));
+  var t = document.getElementById('msg').value;
+  var s = document.getElementById('secs').value;
+  if (t) {
+    act('update', 'script=message&message=' + encodeURIComponent(t));
+  } else if (s) {
+    act('update', 'script=timer&seconds=' + encodeURIComponent(s));
   }
   document.getElementById('msg').value = '';
+  document.getElementById('secs').value = '';
+  return false;
 }
 
-refresh();
+// A URL like /?action=switch&script=snow re-applies that action once on
+// load, intersection: reload == re-run. URL reflects what was done.
+(async function applyUrl() {
+  var qs = location.search.replace(/^\?/, "");
+  if (/action=/.test(qs)) {
+    try { await fetch('/?' + qs, {headers: {"Accept": "application/json"}}); } catch (e) {}
+  }
+  refresh();
+})();
+
 setInterval(refresh, 5000);
 </script>
 </body>
