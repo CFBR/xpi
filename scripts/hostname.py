@@ -49,10 +49,7 @@ def run_unicorn(text, color=None):
     import unicornhat
 
     color = _display.parse_color(color, DEFAULT_COLOR)
-    unicornhat.set_layout(unicornhat.AUTO)
-    shape = unicornhat.get_shape()
-    unicornhat.rotation(0)
-    unicornhat.brightness(0.5)
+    shape, unicornhat = _display.setup_unicorn()
     grid = _display.text_bitmap(text)
     offset = 0
     last_revision = _xpi_state.revision()

@@ -69,6 +69,22 @@ def text_bitmap(text):
     return grid
 
 
+def setup_unicorn(layout=None):
+    """Initialize unicornhat, honoring the *real* board layout.
+
+    unicornhat.setup() defaults to the HAT layout and get_shape() triggers
+    setup() on first call, which clobbers any earlier set_layout(). So:
+    trigger setup() once (reading the shape we throw away), then set the
+    layout we actually want, then read the true shape.
+    """
+    import unicornhat
+    unicornhat.get_shape()                     # runs setup() once -> HAT
+    unicornhat.set_layout(layout or unicornhat.AUTO)
+    unicornhat.rotation(0)
+    unicornhat.brightness(0.5)
+    return unicornhat.get_shape(), unicornhat
+
+
 def draw_unicorn(grid, offset, shape, color):
     """Scroll `grid` across a unicorn display; one show() per call."""
     w, h = shape

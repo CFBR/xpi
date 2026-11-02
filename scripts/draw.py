@@ -31,10 +31,7 @@ def get_pixels():
 def run_unicorn(pixels):
     import unicornhat
 
-    unicornhat.set_layout(unicornhat.AUTO)
-    shape = unicornhat.get_shape()
-    unicornhat.rotation(0)
-    unicornhat.brightness(0.5)
+    shape, unicornhat = _display.setup_unicorn()
     print("draw.py: unicorn drawing", len(pixels), "pixels, shape", shape)
     render(pixels, shape, unicornhat.show)
     current = _xpi_state.revision()

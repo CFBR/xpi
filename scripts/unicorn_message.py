@@ -14,7 +14,7 @@ import xpi_state
 import _display
 
 DEFAULT_COLOR = (255, 255, 255)
-BRIGHTNESS = 0.5
+
 
 
 def get_message():
@@ -24,10 +24,7 @@ def get_message():
     return str(text if text is not None else "hi").upper()
 
 
-unicornhat.set_layout(unicornhat.AUTO)
-shape = unicornhat.get_shape()
-unicornhat.rotation(0)
-unicornhat.brightness(BRIGHTNESS)
+shape, unicornhat = _display.setup_unicorn()
 
 text = get_message()
 color = _display.parse_color(xpi_state.value("color"), DEFAULT_COLOR)
