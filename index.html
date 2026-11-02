@@ -3,113 +3,406 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
 <title>xpi display control</title>
 <style>
-  :root { color-scheme: light dark; }
+  :root {
+    --bg: #0c1015;
+    --panel: #151b23;
+    --panel2: #1b232d;
+    --line: #26303b;
+    --line2: #33414f;
+    --text: #dbe4ee;
+    --muted: #8b98a8;
+    --accent: #4cc2ff;
+    --accent2: #2a90c8;
+    --on: #43d17f;
+    --radius: 12px;
+    color-scheme: dark;
+  }
   * { box-sizing: border-box; }
-  body { font-family: system-ui, sans-serif; margin: .4rem; font-size: 14px; }
-  h1 { font-size: 16px; margin: .2rem 0; }
-  button { padding: .15rem .55rem; font-size: 13px; }
-  select, input { font-size: 13px; padding: .15rem .35rem; }
-  .row { display: flex; flex-wrap: wrap; gap: .35rem; align-items: center; margin: .3rem 0; }
-  nav button { cursor: pointer; }
-  nav button.on { font-weight: bold; text-decoration: underline; }
-  #grid { display: flex; flex-wrap: wrap; gap: .3rem; }
-  .chip { border: 1px solid #8886; border-radius: 3px; padding: .15rem .45rem;
-          font-size: 12.5px; background: transparent; color: inherit; cursor: pointer; }
-  .chip.running { border-width: 2px; font-weight: bold; }
-  .info { font-size: 12px; opacity: .75; margin: 0; }
-  pre { margin: .2rem 0; font-size: 11.5px; max-height: 4.4em; overflow: hidden;
-        white-space: pre-wrap; background: #8882; padding: .3rem; }
-  .btag { opacity: .6; font-size: 11px; margin-left: .3rem; }
+  html, body { min-height: 100%; }
+  body {
+    margin: 0;
+    padding: 14px;
+    font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
+    color: var(--text);
+    background:
+      radial-gradient(900px 500px at 15% -10%, #17303f 0%, transparent 60%),
+      radial-gradient(700px 400px at 100% 0%, #1a2436 0%, transparent 55%),
+      var(--bg);
+  }
+
+  /* ---------- header ---------- */
+  header.top {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px 16px;
+    margin: 0 0 14px;
+  }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .brand h1 { font-size: 19px; font-weight: 650; margin: 0; letter-spacing: .3px; }
+  .dot {
+    width: 10px; height: 10px; border-radius: 50%;
+    background: var(--accent);
+    box-shadow: 0 0 12px var(--accent);
+  }
+  .pills { display: flex; flex-wrap: wrap; gap: 6px; margin-left: auto; }
+  .pill {
+    display: inline-flex; align-items: baseline; gap: 6px;
+    padding: 5px 10px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: #111720cc;
+    font-size: 12.5px;
+  }
+  .pill i { color: var(--muted); font-style: normal; }
+  .pill b { font-weight: 600; }
+  .pill.live b { color: var(--on); }
+
+  /* ---------- layout ---------- */
+  main {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, auto);
+    gap: 14px;
+    align-items: start;
+  }
+  @media (max-width: 860px) { main { grid-template-columns: 1fr; } }
+
+  .card {
+    background: linear-gradient(180deg, #171e27, var(--panel));
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    padding: 12px;
+    min-width: 0;
+    box-shadow: 0 10px 30px #0006;
+  }
+  .cardhead {
+    display: flex; align-items: center; gap: 10px;
+    margin: 0 0 10px;
+  }
+  .cardhead h2 {
+    font-size: 12px; font-weight: 600; letter-spacing: .09em;
+    text-transform: uppercase; color: var(--muted); margin: 0;
+  }
+  .cardhead .right { margin-left: auto; display: flex; gap: 6px; }
+  .hint { font-size: 12px; color: var(--muted); }
+
+  .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0 0 10px; }
+  .row:last-child { margin-bottom: 0; }
+  .field { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
+  .spacer { flex: 1 1 auto; }
+  .btnrow { display: inline-flex; gap: 8px; margin-left: auto; }
+  .divider { height: 1px; background: var(--line); margin: 12px 0; }
+
+  /* ---------- controls ---------- */
+  button {
+    font: inherit; font-size: 13.5px;
+    padding: 7px 12px;
+    border-radius: 9px;
+    border: 1px solid var(--line2);
+    background: var(--panel2);
+    color: var(--text);
+    cursor: pointer;
+    transition: background .12s, border-color .12s, transform .06s;
+  }
+  button:hover { background: #232d3a; border-color: #42556a; }
+  button:active { transform: translateY(1px); }
+  button.primary {
+    background: linear-gradient(180deg, var(--accent2), #1d6b91);
+    border-color: #39a3d4; color: #fff;
+  }
+  button.primary:hover { background: linear-gradient(180deg, #34a3dc, #1f749e); }
+  button.ghost { background: transparent; }
+  button:disabled { opacity: .45; cursor: default; }
+
+  select, input[type=text], input[type=number], input:not([type]), textarea {
+    font: inherit; font-size: 13.5px;
+    padding: 7px 9px;
+    border-radius: 9px;
+    border: 1px solid var(--line2);
+    background: #0f151c;
+    color: var(--text);
+    min-width: 0;
+  }
+  #msg { flex: 1 1 7rem; width: auto; }
+  #secs { flex: 0 1 5rem; }
+  select:focus, input:focus, textarea:focus { outline: 2px solid #2f8fc0; outline-offset: 1px; }
+  input::placeholder { color: #5f6c7b; }
+
+  /* ---------- board tabs + script chips ---------- */
+  .tabs {
+    display: inline-flex; flex-wrap: wrap; gap: 4px;
+    padding: 3px; margin: 0 0 10px;
+    border: 1px solid var(--line); border-radius: 10px;
+    background: #10161d;
+  }
+  .tab {
+    border: 1px solid transparent; background: transparent;
+    border-radius: 7px; padding: 5px 10px; font-size: 12.5px; color: var(--muted);
+  }
+  .tab:hover { color: var(--text); background: #1a232d; }
+  .tab.on { background: var(--panel2); color: var(--text); border-color: var(--line2); }
+
+  .chips {
+    display: flex; flex-wrap: wrap; gap: 6px;
+    max-height: 232px; overflow-y: auto;
+    padding-right: 4px;
+  }
+  .chip {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    border: 1px solid var(--line2);
+    background: #1a222c;
+    color: var(--text);
+    font-size: 13px;
+  }
+  .chip:hover { background: #223040; border-color: #46617a; }
+  .chip.running {
+    border-color: var(--on);
+    background: #16281f;
+    color: #e8fff2;
+    box-shadow: 0 0 0 1px #43d17f55, 0 0 14px #43d17f22;
+  }
+  .chip.running::before {
+    content: ""; width: 7px; height: 7px; border-radius: 50%;
+    background: var(--on); box-shadow: 0 0 8px var(--on);
+  }
+  .btag { font-size: 11px; color: var(--muted); margin-left: 2px; }
+
+  .logline {
+    margin: 10px 0 0;
+    font: 11.5px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+    color: var(--muted);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    border-top: 1px dashed var(--line);
+    padding-top: 8px;
+  }
+
+  /* ---------- preview ---------- */
+  .previewwrap {
+    display: flex; justify-content: center; align-items: center;
+    min-height: 74px;
+    padding: 12px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: #0a0e13;
+  }
+
+  input[type=range] {
+    flex: 1 1 140px;
+    max-width: 240px;
+    height: 6px;
+    padding: 0;
+    border: 0;
+    border-radius: 3px;
+    background: linear-gradient(90deg, #2a90c8, #4cc2ff);
+    accent-color: var(--accent);
+    cursor: pointer;
+  }
+  input[type=range]:disabled {
+    background: var(--line);
+    cursor: default;
+    opacity: .5;
+  }
+
+  /* ---------- draw canvas ---------- */
+  .palette { display: flex; flex-wrap: wrap; gap: 6px; }
+  .swatch {
+    width: 26px; height: 26px; padding: 0;
+    border-radius: 7px;
+    border: 1px solid #ffffff22;
+    cursor: pointer;
+  }
+  .swatch.on { outline: 2px solid var(--accent); outline-offset: 2px; }
+  .swatch.erase {
+    display: grid; place-items: center;
+    background: #10161d; color: var(--muted); font-size: 13px;
+  }
+
+  .canvaswrap {
+    display: flex; justify-content: center;
+    padding: 12px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background:
+      radial-gradient(400px 200px at 50% 0%, #14202b, transparent 70%),
+      #090d11;
+  }
+  #draw {
+    display: grid;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    cursor: crosshair;
+  }
+  .cell {
+    border-radius: 4px;
+    background: #1a222c;
+    box-shadow: inset 0 0 0 1px #2b3744;
+    transition: background .08s ease, box-shadow .08s ease;
+  }
+  .cell.lit { box-shadow: inset 0 0 0 1px #ffffff26; }
+  .cell.mono { border-radius: 2px; }
+
+  /* ---------- editor ---------- */
+  details.editor { margin-top: 14px; }
+  details.editor > summary {
+    cursor: pointer;
+    font-size: 12px; font-weight: 600; letter-spacing: .09em;
+    text-transform: uppercase; color: var(--muted);
+    list-style: none;
+  }
+  details.editor > summary::-webkit-details-marker { display: none; }
+  details.editor > summary::before { content: "▸ "; }
+  details.editor[open] > summary::before { content: "▾ "; }
+  details.editor > summary:hover { color: var(--text); }
+  #edText {
+    width: 100%; min-height: 220px; margin-top: 10px;
+    font: 12.5px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+    background: #0b1016;
+    resize: vertical;
+  }
 </style>
 </head>
 <body>
-<h1>xpi display control <span id="stat" class="info"></span></h1>
 
-<div class="row">
-  <button onclick="act('stop')">Stop</button>
-  <button onclick="act('clear')">Clear</button>
-  <label>boot
-    <select id="boot"></select>
-    <button onclick="saveBoot()">Save</button>
-  </label>
-</div>
-
-<div class="row">
-  <form onsubmit="return send()" style="display:contents">
-    <label>message <input id="msg" size="14" placeholder="text"></label>
-    <label>timer <input id="secs" type="number" min="0" style="width:4em" placeholder="sec"></label>
-    <button>Send</button>
-  </form>
-</div>
-
-<div class="row" id="boards"></div>
-<div id="grid"></div>
-<pre id="log" class="info"></pre>
-
-<fieldset style="margin:.4rem 0">
-  <legend>Preview (board apprx.)</legend>
-  <div id="preview" style="display:flex;gap:1px"></div>
-  <div class="info" id="previewNote"></div>
-</fieldset>
-
-<fieldset style="margin:.4rem 0">
-  <legend>Draw on board</legend>
-  <div class="row">
-    <span id="palette"></span>
-    <button onclick="sendPixels()">Send drawing</button>
-    <button onclick="clearPixels()">Blank</button>
+<header class="top">
+  <div class="brand"><span class="dot"></span><h1>xpi</h1></div>
+  <div class="pills">
+    <span class="pill"><i>host</i><b id="pHost">…</b></span>
+    <span class="pill"><i>board</i><b id="pBoard">…</b></span>
+    <span class="pill" id="pRunPill"><i>running</i><b id="pRun">…</b></span>
+    <span class="pill"><i>boot</i><b id="pBoot">…</b></span>
   </div>
-  <div id="draw" style="gap:1px"></div>
-  <div class="info">click cells to set, click again to erase; sending makes <code>draw</code> the running script</div>
-</fieldset>
+</header>
 
-<fieldset style="margin:.4rem 0">
-  <legend>Scripts</legend>
-  <div class="row">
-    <select id="edList" style="max-width:12rem"></select>
+<main>
+  <section class="card">
+    <div class="cardhead">
+      <h2>Scripts</h2>
+      <div class="right">
+        <button onclick="act('stop')">Stop</button>
+        <button onclick="act('clear')">Clear board</button>
+      </div>
+    </div>
+
+    <div class="row">
+      <label class="field">boot
+        <select id="boot"></select>
+      </label>
+      <button onclick="saveBoot()">Save boot</button>
+    </div>
+
+    <form class="row" onsubmit="return send()">
+      <label class="field">message
+        <input id="msg" placeholder="text" size="16">
+      </label>
+      <label class="field">timer
+        <input id="secs" type="number" min="0" placeholder="sec" style="width:5.2em">
+      </label>
+      <button class="primary">Send</button>
+    </form>
+
+    <div class="tabs" id="boards"></div>
+    <div class="chips" id="grid"></div>
+    <p class="logline" id="log">last output: (none)</p>
+  </section>
+
+  <section class="card">
+    <div class="cardhead">
+      <h2>Board</h2>
+      <span class="hint" id="previewNote">waiting</span>
+    </div>
+    <div class="previewwrap"><div id="preview"></div></div>
+
+    <div class="row" style="margin-top:10px">
+      <label class="field" for="bright">brightness</label>
+      <input id="bright" type="range" min="0" max="100" step="1" value="50">
+      <span class="hint" id="brightVal">50%</span>
+      <span class="hint" id="brightNote"></span>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="cardhead">
+      <h2>Draw</h2>
+      <span class="hint">drag to light LEDs, drag over lit ones to erase</span>
+    </div>
+
+    <div class="row">
+      <div class="palette" id="palette"></div>
+      <span class="spacer"></span>
+      <span class="btnrow">
+        <button class="primary" onclick="sendPixels()">Send</button>
+        <button onclick="clearPixels()">Blank</button>
+      </span>
+    </div>
+
+    <div class="canvaswrap"><div id="draw"></div></div>
+  </section>
+</main>
+
+<details class="card editor">
+  <summary>Script editor</summary>
+  <div class="row" style="margin-top:10px">
+    <select id="edList" style="max-width:13rem"></select>
     <button onclick="loadScript()">Load</button>
-    <input id="edName" placeholder="newscript" size="10">
-    <button onclick="saveScript()">Save</button>
+    <input id="edName" placeholder="newscript" size="12">
+    <button class="primary" onclick="saveScript()">Save</button>
     <button onclick="deleteScript()">Delete file</button>
-    <label>upload
+    <label class="field">upload
       <input type="file" id="edFile" accept=".py,text/python" onchange="fileChosen(this)">
     </label>
   </div>
-  <textarea id="edText" rows="10" style="width:100%;font-family:monospace;font-size:12px"
-            spellcheck="false" placeholder="edit or paste python here"></textarea>
-</fieldset>
+  <textarea id="edText" spellcheck="false" placeholder="edit or paste python here"></textarea>
+</details>
 
 <script>
 "use strict";
-var state = null, board = "all", firstRefresh = true;
+var state = null, board = "all", firstRefresh = true, seeded = false;
 var boardMap = {"microdot-phat": "microdot-phat",
                 "unicorn phat": "unicorn-phat",
                 "unicorn-hat 16x8": "unicorn-hat",
-                "unicorn-hat": "unicorn-hat", "both": "microdot-phat",
-                "generic": "all"};
+                "unicorn-hat": "unicorn-hat",
+                "both": "both", "generic": "both"};
+var tabLabel = {"microdot-phat": "microdot-phat", "unicorn-hat": "unicorn",
+                "unicorn-phat": "unicorn"};
 
 function boardOf(s) { return boardMap[s] || "all"; }
 
 function matches(tag) {
-  if (board === "all") return true;
+  if (board === "all" || tag === "both") return true;
   if (board === "unicorn") return tag === "unicorn-hat" || tag === "unicorn-phat";
   return tag === board;
 }
+
+function tabFor(attached) {
+  var a = attached || "";
+  if (a === "microdot-phat") return "microdot-phat";
+  if (a.indexOf("unicorn") >= 0) return "unicorn-hat";
+  return null;
+}
+
+/* ------------------------------------------------------------ refresh --- */
 
 async function refresh() {
   try { state = await (await fetch('/action=status')).json(); } catch (e) { return; }
   var design = {};
   try { design = await (await fetch('/action=state')).json() || {}; } catch (e) {}
-  document.getElementById('stat').textContent =
-    '— attached: ' + (state.attached || 'unknown')
-    + ' | running: ' + (state.running ? (state.running + ' pid ' + state.pid) : 'none')
-    + ' | boot: ' + (state.boot || 'none');
-  var wantTab = state.attached === "microdot-phat" ? "microdot-phat"
-    : (state.attached || "").indexOf("unicorn-hat 16x8") >= 0 ? "unicorn-hat"
-    : (state.attached || "").indexOf("unicorn phat") >= 0 ? "unicorn-phat" : null;
-  if (wantTab && board === "all" && firstRefresh) { board = wantTab; firstRefresh = false; }
+
+  document.getElementById('pHost').textContent = state.hostname || 'pi';
+  document.getElementById('pBoard').textContent = state.attached || 'unknown';
+  var run = state.running;
+  document.getElementById('pRun').textContent = run ? (run + (state.pid ? ' · ' + state.pid : '')) : 'none';
+  document.getElementById('pRunPill').className = 'pill' + (run ? ' live' : '');
+  document.getElementById('pBoot').textContent = state.boot || 'none';
+
+  var wantTab = tabFor(state.attached);
+  if (wantTab && firstRefresh) { board = wantTab; firstRefresh = false; }
+
   var sel = document.getElementById('boot');
   if (!sel.options.length) {
     var none = document.createElement('option');
@@ -121,23 +414,61 @@ async function refresh() {
   }
   sel.value = state.boot || 'none';
 
+  renderTabs();
+  renderChips();
+
+  var shape = shapeOf(state.attached);
+  rebuildDrawGrid(shape);
+  seedDrawing(design);
+  renderPreview(design);
+  syncBrightness(design);
+  fillEditorList();
+
+  if (!seeded) seeded = true;
+}
+
+function renderTabs() {
   var boardTags = state.boards || {};
   var uniq = ["all"].concat(Object.keys(boardTags)
     .map(function (k) { return boardOf(boardTags[k]); })
-    .filter(function (t) { return t !== "all"; })
+    .filter(function (t) { return t !== "all" && t !== "both"; })
     .reduce(function (a, t) { if (a.indexOf(t) < 0) a.push(t); return a; }, []));
+  if (uniq.indexOf(board) < 0) board = "all";
   var nav = document.getElementById("boards");
   nav.innerHTML = "";
   uniq.forEach(function (t) {
     var b = document.createElement("button");
-    b.textContent = t;
-    if (t === board) b.className = "on";
-    b.onclick = function () { board = t; renderJ(); };
+    b.className = "tab" + (t === board ? " on" : "");
+    b.textContent = tabLabel[t] || t;
+    b.onclick = function () { board = t; renderTabs(); renderChips(); };
     nav.appendChild(b);
   });
-  renderJ();
-  renderPreview(design);
-  rebuildDrawGrid(shapeOf(state.attached));
+}
+
+function renderChips() {
+  var grid = document.getElementById("grid");
+  grid.innerHTML = "";
+  (state.scripts || []).forEach(function (n) {
+    var tag = boardOf((state.boards || {})[n]);
+    if (!matches(tag)) return;
+    var b = document.createElement("button");
+    b.className = "chip" + (n === state.running ? " running" : "");
+    b.textContent = n;
+    if (tag === "generic" || tag === "both") {
+      var sp = document.createElement("span");
+      sp.className = "btag"; sp.textContent = "· " + tag;
+      b.appendChild(sp);
+    }
+    b.onclick = function () { act("switch", "script=" + encodeURIComponent(n)); };
+    grid.appendChild(b);
+  });
+  var log = document.getElementById("log");
+  var tail = (state.log || "").trim().split("\n").filter(Boolean).pop() || "(none)";
+  log.textContent = "last output: " + tail;
+  log.title = (state.log || "").trim() || "(none)";
+}
+
+function fillEditorList() {
   var ed = document.getElementById("edList");
   var currentVal = ed.value;
   ed.innerHTML = "";
@@ -151,103 +482,372 @@ async function refresh() {
     ed.value = currentVal;
 }
 
-function renderJ() {
-  var grid = document.getElementById("grid");
-  grid.innerHTML = "";
-  (state.scripts || []).forEach(function (n) {
-    var tag = boardOf((state.boards || {})[n]);
-    var ok = (board === "all")
-      || (board === "unicorn" ? (tag === "unicorn-hat" || tag === "unicorn-phat")
-                              : tag === board);
-    if (!ok) return;
-    var b = document.createElement("button");
-    b.className = "chip" + (n === state.running ? " running" : "");
-    b.textContent = n;
-    if (tag === "generic" || tag === "both") {
-      var sp = document.createElement("span");
-      sp.className = "btag"; sp.textContent = tag;
-      b.appendChild(sp);
-    }
-    b.onclick = function () { act("switch", "script=" + encodeURIComponent(n)); };
-    grid.appendChild(b);
-  });
-  var log = document.getElementById("log");
-  log.textContent = "last output — " + ((state.log || "").trim() || "(none)");
-}
-
 function pushQS(qs) { history.pushState({}, "", "/?" + qs); }
 
-/* ---------- drawing panel: canvas of LEDs and palette ---------- */
+/* ------------------------------------------- drawing: drag to paint --- */
 
-var drawing = [];          // [{x,y,color}]
+var pix = Object.create(null);     // "x,y" -> "#rrggbb"
 var drawColor = "#ffffff";
-var PALETTE = ["#ffffff", "#ff0000", "#00ff00", "#0000ff",
-               "#ffff00", "#00ffff", "#ff00ff", "#804000"];
+var erase = false;
+var drawShapeKey = "";
+var shapeNow = null;
+var cellsEl = [];
+var cellPx = 24, gapPx = 6;
+var painting = false, paintValue = null, lastCell = null, dirty = false;
+var gridEl = document.getElementById("draw");
+
+var RGB = ["#ffffff", "#ff3b30", "#ffcc00", "#34c759",
+           "#00e5ff", "#0a84ff", "#bf5af2", "#ff2d92"];
+
+function shapeOf(attached) {
+  var a = attached || "";
+  if (a === "microdot-phat") return { c: 45, r: 7, mono: true };
+  if (a.indexOf("unicorn-hat 16x8") >= 0) return { c: 16, r: 8, mono: false };
+  if (a.indexOf("unicorn phat") >= 0) return { c: 8, r: 4, mono: false };
+  return { c: 8, r: 8, mono: false };
+}
+
+function cellSizeFor(shape) {
+  /* Viewport based: the canvas wrap grows with its content, so measuring it
+     would feed the previous size back in. */
+  var avail = Math.max(180, Math.min(window.innerWidth - 100, 560));
+  var gap = shape.mono ? 3 : 6;
+  var raw = Math.floor((avail - (shape.c - 1) * gap) / shape.c);
+  if (shape.mono) return Math.max(8, Math.min(raw, 14));
+  return Math.max(16, Math.min(raw, 62));
+}
 
 function rebuildDrawGrid(shape) {
-  var box = document.getElementById("draw");
-  box.style.display = "grid";
-  box.style.gridTemplateColumns = "repeat(" + shape.c + ", 9px)";
-  box.style.maxWidth = "96vw";
-  if (shape.mono) PALETTE = ["#e6e6e6"]; else { PALETTE = ["#ffffff", "#ff0000",
-    "#00ff00", "#0000ff", "#ffff00", "#00ffff", "#ff00ff", "#804000"]; }
-  document.getElementById("palette").innerHTML = "";
-  PALETTE.forEach(function (hex) {
-    var btn = document.createElement("button");
-    btn.style.background = hex;
-    btn.style.border = "1px solid #888c";
-    btn.style.width = "22px";
-    btn.style.height = "22px";
-    if (hex === drawColor) btn.style.outline = "2px solid #0af";
-    btn.onclick = function () { drawColor = hex; };
-    document.getElementById("palette").appendChild(btn);
-  });
-  var box = document.getElementById("draw");
-  box.innerHTML = "";
+  var key = shape.c + "x" + shape.r + (shape.mono ? "m" : "c");
+  if (key === drawShapeKey) return;
+  drawShapeKey = key;
+  shapeNow = shape;
+  gapPx = shape.mono ? 3 : 6;
+  cellPx = cellSizeFor(shape);
+
+  gridEl.style.gridTemplateColumns = "repeat(" + shape.c + ", " + cellPx + "px)";
+  gridEl.style.gap = gapPx + "px";
+  gridEl.innerHTML = "";
+  cellsEl = [];
+
   for (var y = 0; y < shape.r; y++) {
     for (var x = 0; x < shape.c; x++) {
-      (function (x, y) {
-        var cell = document.createElement("div");
-        cell.style.width = "9px"; cell.style.height = "9px";
-        cell.style.background = colorAt(x, y) || "rgba(120,120,120,.25)";
-        cell.style.border = "1px solid rgba(150,150,150,.4)";
-        cell.onclick = function () {
-          setCell(x, y, colorAt(x, y) ? null : drawColor);
-          rebuildDrawGrid(shapeOf(state.attached));
-        };
-        box.appendChild(cell);
-      })(x, y);
+      var cell = document.createElement("div");
+      cell.className = "cell" + (shape.mono ? " mono" : "");
+      cell.style.width = cellPx + "px";
+      cell.style.height = cellPx + "px";
+      cell.dataset.x = x;
+      cell.dataset.y = y;
+      gridEl.appendChild(cell);
+      cellsEl.push(cell);
     }
+  }
+  renderPalette();
+  applyAllCells();
+}
+
+function renderPalette() {
+  var pal = document.getElementById("palette");
+  pal.innerHTML = "";
+  var colors = shapeNow && shapeNow.mono ? ["#e6e6e6"] : RGB;
+
+  colors.forEach(function (hex) {
+    var b = document.createElement("button");
+    b.className = "swatch" + (!erase && hex === drawColor ? " on" : "");
+    b.style.background = hex;
+    b.title = hex;
+    b.onclick = function () { drawColor = hex; erase = false; renderPalette(); };
+    pal.appendChild(b);
+  });
+
+  var e = document.createElement("button");
+  e.className = "swatch erase" + (erase ? " on" : "");
+  e.textContent = "×";
+  e.title = "erase (or shift-drag)";
+  e.onclick = function () { erase = true; renderPalette(); };
+  pal.appendChild(e);
+}
+
+function keyOf(x, y) { return x + "," + y; }
+
+function paintCell(x, y, val) {
+  if (!shapeNow || x < 0 || y < 0 || x >= shapeNow.c || y >= shapeNow.r) return;
+  var el = cellsEl[y * shapeNow.c + x];
+  if (!el) return;
+  if (val) {
+    pix[keyOf(x, y)] = val;
+    el.style.background = val;
+    el.classList.add("lit");
+    el.style.boxShadow = shapeNow.mono
+      ? "0 0 7px #ffffff66"
+      : "0 0 10px " + val + "70";
+  } else {
+    delete pix[keyOf(x, y)];
+    el.style.background = "";
+    el.style.boxShadow = "";
+    el.classList.remove("lit");
   }
 }
 
-function colorAt(x, y) {
-  var found = drawing.filter(function (p) { return p.x === x && p.y === y; });
-  return found.length ? found[0].color : null;
+function applyAllCells() {
+  for (var y = 0; y < shapeNow.r; y++)
+    for (var x = 0; x < shapeNow.c; x++)
+      paintCell(x, y, pix[keyOf(x, y)] || null);
 }
 
-function setCell(x, y, color) {
-  drawing = drawing.filter(function (p) { return !(p.x === x && p.y === y); });
-  if (color) drawing.push({ x: x, y: y, color: color });
+function cellFromPoint(e) {
+  var r = gridEl.getBoundingClientRect();
+  var step = cellPx + gapPx;
+  var x = Math.floor((e.clientX - r.left) / step);
+  var y = Math.floor((e.clientY - r.top) / step);
+  if (x < 0 || y < 0 || x >= shapeNow.c || y >= shapeNow.r) return null;
+  return { x: x, y: y };
+}
+
+function strokeLine(a, b, val) {
+  var x0 = a.x, y0 = a.y, x1 = b.x, y1 = b.y;
+  var dx = Math.abs(x1 - x0), dy = Math.abs(y1 - y0);
+  var sx = x0 < x1 ? 1 : -1, sy = y0 < y1 ? 1 : -1;
+  var err = dx - dy;
+  for (;;) {
+    paintCell(x0, y0, val);
+    if (x0 === x1 && y0 === y1) break;
+    var e2 = 2 * err;
+    if (e2 > -dy) { err -= dy; x0 += sx; }
+    if (e2 < dx) { err += dx; y0 += sy; }
+  }
+}
+
+gridEl.addEventListener("pointerdown", function (e) {
+  if (e.pointerType === "mouse" && e.button !== 0) return;
+  var c = cellFromPoint(e);
+  if (!c) return;
+  e.preventDefault();
+  try { gridEl.setPointerCapture(e.pointerId); } catch (err) {}
+  painting = true;
+  lastCell = c;
+  var lit = !!pix[keyOf(c.x, c.y)];
+  paintValue = (erase || e.shiftKey || lit) ? null : drawColor;
+  dirty = true;
+  paintCell(c.x, c.y, paintValue);
+});
+
+gridEl.addEventListener("pointermove", function (e) {
+  if (!painting) return;
+  var c = cellFromPoint(e);
+  if (!c) return;
+  if (lastCell && (c.x !== lastCell.x || c.y !== lastCell.y)) {
+    strokeLine(lastCell, c, paintValue);
+  } else {
+    paintCell(c.x, c.y, paintValue);
+  }
+  lastCell = c;
+  dirty = true;
+});
+
+function endStroke() {
+  if (!painting) return;
+  painting = false;
+  lastCell = null;
+  if (dirty) sendPixels();
+  dirty = false;
+}
+gridEl.addEventListener("pointerup", endStroke);
+gridEl.addEventListener("pointercancel", endStroke);
+
+function seedDrawing(design) {
+  if (seeded || !state || state.running !== "draw") return;
+  var raw = design && design.pixels;
+  if (!raw) return;
+  var list = [];
+  try { list = JSON.parse(raw); } catch (e) { return; }
+  if (!Array.isArray(list) || !list.length) return;
+  list.forEach(function (p) {
+    if (!Array.isArray(p) || p.length < 2) return;
+    var x = Number(p[0]), y = Number(p[1]);
+    if (!isFinite(x) || !isFinite(y)) return;
+    if (x < 0 || y < 0 || x >= shapeNow.c || y >= shapeNow.r) return;
+    pix[keyOf(x, y)] = p[2] || (shapeNow.mono ? "#e6e6e6" : "#ffffff");
+  });
+  applyAllCells();
 }
 
 function sendPixels() {
-  var shape = shapeOf(state.attached);
-  var payload;
-  if (shape.mono) {
-    payload = drawing.map(function (p) { return [p.x, p.y]; });
-  } else {
-    payload = drawing.map(function (p) { return [p.x, p.y, p.color]; });
-  }
-  act('update', 'script=draw&pixels=' + encodeURIComponent(JSON.stringify(payload)));
+  if (!shapeNow) return;
+  var out = [];
+  Object.keys(pix).forEach(function (k) {
+    var xy = k.split(",");
+    if (shapeNow.mono) out.push([Number(xy[0]), Number(xy[1])]);
+    else out.push([Number(xy[0]), Number(xy[1]), pix[k]]);
+  });
+  act('update', 'script=draw&pixels=' + encodeURIComponent(JSON.stringify(out)));
 }
 
 function clearPixels() {
-  drawing = [];
+  Object.keys(pix).forEach(function (k) { delete pix[k]; });
+  applyAllCells();
   sendPixels();
 }
 
-/* ---------- script upload / edit / delete via the page ---------- */
+/* ------------------------------------------------------------ brightness --- */
+
+var brightInput = document.getElementById("bright");
+var brightDragging = false;
+
+function syncBrightness(design) {
+  var mono = shapeOf(state && state.attached).mono;
+  brightInput.disabled = mono;
+  document.getElementById("brightNote").textContent =
+    mono ? "no brightness control on microdot-phat" : "";
+  if (brightDragging) return;
+  var v = design && design.brightness != null ? Number(design.brightness) : 0.5;
+  if (!isFinite(v)) v = 0.5;
+  v = Math.max(0, Math.min(1, v));
+  brightInput.value = Math.round(v * 100);
+  document.getElementById("brightVal").textContent = brightInput.value + "%";
+}
+
+brightInput.addEventListener("input", function () {
+  brightDragging = true;
+  document.getElementById("brightVal").textContent = brightInput.value + "%";
+});
+
+brightInput.addEventListener("change", function () {
+  brightDragging = false;
+  act('update', 'brightness=' + (brightInput.value / 100).toFixed(2));
+});
+
+/* ------------------------------------------ what the board is showing --- */
+
+/* tiny 3x5 font for the preview only (message/hostname/timer scroll) */
+var P3X5 = function (ch) {
+  return FONT_MINI[ch] || FONT_MINI["?"];
+};
+var FONT_MINI = {
+  "A": ["010","101","111","101","101"],
+  "B": ["110","101","110","101","110"],
+  "C": ["011","100","100","100","011"],
+  "D": ["110","101","101","101","110"],
+  "E": ["111","100","110","100","111"],
+  "F": ["111","100","110","100","100"],
+  "G": ["011","100","101","101","011"],
+  "H": ["101","101","111","101","101"],
+  "I": ["111","010","010","010","111"],
+  "K": ["101","110","101","101","101"],
+  "L": ["100","100","100","100","111"],
+  "M": ["101","111","111","101","101"],
+  "N": ["101","111","111","111","101"],
+  "J": ["001","001","001","101","010"],
+  "X": ["101","101","010","101","101"],
+  "Z": ["111","001","010","100","111"],
+  "O": ["010","101","101","101","010"],
+  "P": ["110","101","110","100","100"],
+  "R": ["110","101","110","101","101"],
+  "S": ["011","100","010","001","110"],
+  "T": ["111","010","010","010","010"],
+  "U": ["101","101","101","101","011"],
+  "V": ["101","101","101","010","010"],
+  "W": ["101","101","111","111","101"],
+  "Y": ["101","101","010","010","010"],
+  "0": ["010","101","101","101","010"],
+  "1": ["010","110","010","010","111"],
+  "2": ["110","001","010","100","111"],
+  "3": ["110","001","110","001","110"],
+  "4": ["101","101","111","001","001"],
+  "5": ["111","100","110","001","110"],
+  "6": ["011","100","110","101","010"],
+  "7": ["111","001","010","010","010"],
+  "8": ["010","101","010","101","010"],
+  "9": ["010","101","011","001","110"],
+  " ": ["000","000","000","000","000"],
+  ":": ["000","010","000","010","000"],
+  "-": ["000","000","111","000","000"],
+  ".": ["000","000","000","000","010"],
+  "?": ["110","001","010","000","010"]
+};
+
+function textGrid(text) {
+  var rows = [];
+  for (var y = 0; y < 5; y++) rows.push([]);
+  for (var i = 0; i < text.length; i++) {
+    var g = P3X5(text[i]);
+    for (var yy = 0; yy < 5; yy++) {
+      for (var xx = 0; xx < 3; xx++) rows[yy].push(Number(g[yy][xx]));
+      rows[yy].push(0);
+    }
+  }
+  return rows;
+}
+
+function makeLedGrid(shape, cells) {
+  var wrap = document.createElement("div");
+  var px = shape.mono ? 7 : 16;
+  wrap.style.display = "grid";
+  wrap.style.gridTemplateColumns = "repeat(" + shape.c + ", " + px + "px)";
+  wrap.style.gap = shape.mono ? "2px" : "4px";
+  for (var y = 0; y < shape.r; y++) {
+    for (var x = 0; x < shape.c; x++) {
+      var d = document.createElement("div");
+      d.style.width = px + "px";
+      d.style.height = px + "px";
+      d.style.borderRadius = shape.mono ? "1px" : "3px";
+      var v = cells[y * shape.c + x];
+      d.style.background = v || "#161d26";
+      if (v) d.style.boxShadow = "0 0 8px " + v + "80";
+      wrap.appendChild(d);
+    }
+  }
+  return wrap;
+}
+
+function renderPreview(designState) {
+  if (!state) return;
+  var box = document.getElementById("preview");
+  box.innerHTML = "";
+  var shape = shapeOf(state.attached);
+  var note = document.getElementById("previewNote");
+  var cells = [];
+
+  var fillTextPreview = function (text) {
+    var rows = textGrid(text);
+    var off = Math.floor((Date.now() / 120) % rows[0].length);
+    for (var y = 0; y < Math.min(5, shape.r); y++) {
+      for (var x = 0; x < shape.c; x++) {
+        cells[y * shape.c + x] = rows[y][(x + off) % rows[0].length]
+          ? "#e6e6e6" : null;
+      }
+    }
+  };
+
+  var runningScript = state.running || "";
+  if (runningScript === "draw" && designState && designState.pixels != null) {
+    var pxs = [];
+    try { pxs = JSON.parse(designState.pixels); } catch (e) {}
+    pxs.forEach(function (p) {
+      if (Array.isArray(p) && p.length >= 2 && typeof p[0] === "number")
+        cells[p[1] * shape.c + p[0]] = (p[2] || (shape.mono ? "#e6e6e6" : "#fff"));
+    });
+    note.textContent = "exact pixels on the board";
+  } else if (runningScript === "message" || runningScript === "unicorn_message") {
+    fillTextPreview(String(designState.message || "hi").toUpperCase());
+    note.textContent = "scrolling text";
+  } else if (runningScript === "timer") {
+    var left = Math.max(0, (designState.seconds || 60) - 1);
+    var mm = Math.floor(left / 60), ss = left % 60;
+    fillTextPreview(mm + ":" + (ss < 10 ? "0" : "") + ss);
+    note.textContent = "countdown (approx)";
+  } else if (runningScript === "hostname") {
+    fillTextPreview(String(designState.hostname || "pi").toUpperCase());
+    note.textContent = "scrolling hostname";
+  } else if (runningScript) {
+    note.textContent = "'" + runningScript + "' drives the hardware, no preview";
+  } else {
+    note.textContent = "nothing running";
+  }
+  box.appendChild(makeLedGrid(shape, cells));
+}
+
+/* ------------------------------------------ script upload / edit / delete --- */
 
 async function loadScript() {
   var stem = document.getElementById("edList").value || "";
@@ -258,7 +858,6 @@ async function loadScript() {
   if (data.code != null) {
     document.getElementById("edText").value = data.code;
     document.getElementById("edName").value = stem.replace(/\.py$/, "");
-    document.getElementById("edText").placeholder = "";
   } else {
     alert("load failed: " + (data.error || res.status));
   }
@@ -307,147 +906,7 @@ async function deleteScript() {
   document.getElementById("edText").value = "";
 }
 
-
-
-/* ---------- what the board is showing (approximate preview) ---------- */
-
-function shapeOf(attached) {
-  var a = attached || "";
-  if (a === "microdot-phat") return { c: 45, r: 7, mono: true };
-  if (a.indexOf("unicorn-hat 16x8") >= 0) return { c: 16, r: 8, mono: false };
-  if (a.indexOf("unicorn phat") >= 0) return { c: 8, r: 4, mono: false };
-  return { c: 8, r: 8, mono: false };
-}
-
-/* tiny 3x5 font for the preview only (message/hostname/timer scroll) */
-var P3X5 = function(ch) {
-  var glyph = FONT_MINI[ch];
-  if (!glyph) return FONT_MINI["?"];
-  return glyph;
-};
-var FONT_MINI = {
-  "A": ["010","101","111","101","101"],
-  "B": ["110","101","110","101","110"],
-  "C": ["011","100","100","100","011"],
-  "D": ["110","101","101","101","110"],
-  "E": ["111","100","110","100","111"],
-  "F": ["111","100","110","100","100"],
-  "G": ["011","100","101","101","011"],
-  "H": ["101","101","111","101","101"],
-  "I": ["111","010","010","010","111"],
-  "K": ["101","110","101","101","101"],
-  "L": ["100","100","100","100","111"],
-  "M": ["101","111","111","101","101"],
-  "N": ["101","111","111","111","101"],
-  "J": ["001","001","001","101","010"],
-  "X": ["101","101","010","101","101"],
-  "Z": ["111","001","010","100","111"],
-  "O": ["010","101","101","101","010"],
-  "P": ["110","101","110","100","100"],
-  "R": ["110","101","110","101","101"],
-  "S": ["011","100","010","001","110"],
-  "T": ["111","010","010","010","010"],
-  "U": ["101","101","101","101","011"],
-  "V": ["101","101","101","010","010"],
-  "W": ["101","101","111","111","101"],
-  "Y": ["101","101","010","010","010"],
-  "0": ["010","101","101","101","010"],
-  "1": ["010","110","010","010","111"],
-  "2": ["110","001","010","100","111"],
-  "3": ["110","001","110","001","110"],
-  "4": ["101","101","111","001","001"],
-  "5": ["111","100","110","001","110"],
-  "6": ["011","100","110","101","010"],
-  "7": ["111","001","010","010","010"],
-  "8": ["010","101","010","101","010"],
-  "9": ["010","101","011","001","110"],
-  "0": ["010","101","101","101","010"],
-  " ": ["000","000","000","000","000"],
-  ":": ["000","010","000","010","000"],
-  "-": ["000","000","111","000","000"],
-  ".": ["000","000","000","000","010"],
-  "?": ["110","001","010","000","010"]
-};
-
-function textGrid(text) {
-  var w = text.length * 4;
-  var rows = [0, 0, 0, 0].map(function () { return []; });
-  rows = [];
-  for (var y = 0; y < 5; y++) rows.push([]);
-  for (var i = 0; i < text.length; i++) {
-    var g = P3X5(text[i]);
-    for (var yy = 0; yy < 5; yy++) {
-      for (var xx = 0; xx < 3; xx++) {
-        rows[yy].push(Number(g[yy][xx]));
-      }
-      rows[yy].push(0); /* letter gap */
-    }
-  }
-  return rows; /* rows[0..4], columns = text.length*4 */
-}
-
-function makeLedGrid(shape, cells) {
-  var wrap = document.createElement("div");
-  wrap.style.display = "grid";
-  wrap.style.gridTemplateColumns = "repeat(" + shape.c + ", " + (shape.mono ? "3px" : "6px") + ")";
-  wrap.style.gap = "1px";
-  for (var y = 0; y < shape.r; y++) {
-    for (var x = 0; x < shape.c; x++) {
-      var d = document.createElement("div");
-      d.style.width = shape.mono ? "3px" : "6px";
-      d.style.height = d.style.width;
-      d.style.background = cells[y * shape.c + x] || "rgba(120,120,120,.35)";
-      wrap.appendChild(d);
-    }
-  }
-  return wrap;
-}
-
-function renderPreview(designState) {
-  if (!state) return;
-  var box = document.getElementById("preview");
-  box.innerHTML = "";
-  var shape = shapeOf(state.attached);
-  var note = document.getElementById("previewNote");
-  var cells = [];
-  var fillTextPreview = function (text) {
-    var rows = textGrid(text);
-    var off = Math.floor((Date.now() / 120) % rows[0].length);
-    for (var y = 0; y < Math.min(5, shape.r); y++) {
-      for (var x = 0; x < shape.c; x++) {
-        cells[y * shape.c + x] = rows[y][(x + off) % rows[0].length] ? "#e6e6e6" : null;
-      }
-    }
-  };
-  var runningScript = state.running || "";
-  if (runningScript === "draw" && designState && designState.pixels != null) {
-    var pxs = [];
-    try { pxs = JSON.parse(designState.pixels); } catch (e) {}
-    pxs.forEach(function (p) {
-      if (Array.isArray(p) && p.length >= 2 && typeof p[0] === "number")
-        cells[p[1] * shape.c + p[0]] = (p[2] || (shape.mono ? "#e6e6e6" : "#fff"));
-    });
-    note.textContent = "exact pixels on the board";
-  } else if (runningScript === "message" || runningScript === "unicorn_message") {
-    fillTextPreview(String(designState.message || "hi").toUpperCase());
-    note.textContent = "scrolling script content";
-  } else if (runningScript === "timer") {
-    var left = Math.max(0, (designState.seconds || 60) - 1);
-    var mm = Math.floor(left / 60), ss = left % 60;
-    var text = mm + ":" + (ss < 10 ? "0" : "") + ss;
-    fillTextPreview(text);
-    note.textContent = "countdown (approx)";
-  } else if (runningScript === "hostname") {
-    fillTextPreview(String(designState.hostname || "pi").toUpperCase());
-    note.textContent = "scrolling hostname";
-  } else if (runningScript) {
-    note.textContent = "repo script '" + runningScript + "' writes to hardware directly (no preview)";
-  } else {
-    note.textContent = "nothing running";
-  }
-  box.appendChild(makeLedGrid(shape, cells));
-}
-
+/* ------------------------------------------------------------- actions --- */
 
 async function act(action, extra) {
   var qs = "action=" + action + (extra ? "&" + extra : "");
@@ -474,8 +933,21 @@ function send() {
   return false;
 }
 
+/* Rebuilding the canvas at a new size keeps the LEDs on screen after a resize. */
+var resizeTimer = null;
+window.addEventListener("resize", function () {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(function () {
+    if (!shapeNow) return;
+    var size = cellSizeFor(shapeNow);
+    if (size === cellPx) return;
+    drawShapeKey = "";
+    rebuildDrawGrid(shapeNow);
+  }, 150);
+});
+
 // A URL like /?action=switch&script=snow re-applies that action once on
-// load, intersection: reload == re-run. URL reflects what was done.
+// load, so a reload is a re-run and the address bar shows what was done.
 (async function applyUrl() {
   var qs = location.search.replace(/^\?/, "");
   if (/action=/.test(qs)) {

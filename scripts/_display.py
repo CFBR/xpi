@@ -6,6 +6,8 @@
 
 import re
 
+import _xpi_state
+
 # 3x5 pixel font for uppercase letters, digits and a few punctuation.
 FONT = {
     "A": ["010", "101", "111", "101", "101"], "B": ["110", "101", "110", "101", "110"],
@@ -69,6 +71,21 @@ def text_bitmap(text):
     return grid
 
 
+def brightness_value(default=0.5):
+    """Brightness from state.json "brightness", clamped to 0.0-1.0.
+
+    The microdot-phat has no brightness control; only unicornhat scripts use
+    this.
+    """
+    raw = _xpi_state.value("brightness")
+    if raw is None:
+        return default
+    try:
+        return max(0.0, min(1.0, float(raw)))
+    except (TypeError, ValueError):
+        return default
+
+
 def setup_unicorn(layout=None):
     """Initialize unicornhat, honoring the *real* board layout.
 
@@ -81,7 +98,7 @@ def setup_unicorn(layout=None):
     unicornhat.get_shape()                     # runs setup() once -> HAT
     unicornhat.set_layout(layout or unicornhat.AUTO)
     unicornhat.rotation(0)
-    unicornhat.brightness(0.5)
+    unicornhat.brightness(brightness_value())
     return unicornhat.get_shape(), unicornhat
 
 

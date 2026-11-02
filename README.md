@@ -36,6 +36,7 @@ http://<pi-ip>/?action=switch&script=snow     # Run or reset a script
 | `?action=update&script=message&message=hello` | Push text, restart `message` |
 | `?action=update&seconds=15&script=timer` | Start a countdown |
 | `?action=update&message=hi` | No script given: the running script picks it up live, no restart |
+| `?action=update&brightness=0.4` | Set LED brightness from 0 to 1. Unicorn boards only |
 | `?action=switch&script=clock&arg=x` | Stop the current script, run `clock` with positional args |
 | `?action=stop` | Kill the current script. Its last frame stays on the board |
 | `?action=clear` | Kill it and blank both boards |
@@ -48,12 +49,15 @@ Quote the whole URL because `?` and `&` are shell metacharacters. Repeating
 ### state.json
 
 ```json
-{"message": "...", "seconds": 15, "revision": 17}
+{"message": "...", "seconds": 15, "brightness": 0.4, "revision": 17}
 ```
 
 `/action=update` increments `revision`. Scripts that poll the `revision()`
-function in `scripts/_xpi_state.py` pick up new `message` and `seconds`
-values without a restart.
+function in `scripts/_xpi_state.py` pick up new `message`, `seconds` and
+`brightness` values without a restart.
+
+`brightness` applies to the unicorn scripts. The microdot-phat is monochrome
+and has no dimming, so the slider is disabled when that board is attached.
 
 ### Boards
 
