@@ -24,15 +24,23 @@ INDEX_FILE = os.path.join(ROOT, "index.html")
 SCRIPTS_DIR = os.path.join(ROOT, "scripts")
 SCAN_DIRS = [
     SCRIPTS_DIR,
-    os.path.join(ROOT, "repos/microdot-phat/examples"),
-    os.path.join(ROOT, "repos/unicorn-hat/examples"),
-    os.path.join(ROOT, "repos/unicorn-hat/examples/hat"),
-    os.path.join(ROOT, "repos/unicorn-hat/examples/phat"),
+    os.path.join(ROOT, "examples/microdot-phat"),
+    os.path.join(ROOT, "examples/unicorn-hat"),
+    os.path.join(ROOT, "examples/unicorn-hat/hat"),
+    os.path.join(ROOT, "examples/unicorn-hat/phat"),
 ]
 REPO_LIBPATHS = [
-    os.path.join(ROOT, "repos/microdot-phat/library"),
-    os.path.join(ROOT, "repos/unicorn-hat/library/UnicornHat"),
+    os.path.join(ROOT, "vendor/microdot-phat"),
+    os.path.join(ROOT, "vendor/unicorn-hat"),
 ]
+
+sys.path.insert(0, SCRIPTS_DIR)
+try:
+    from _net import local_ip
+except ImportError:      # scripts/ missing: status just reports no ip
+    def local_ip():
+        return None
+sys.path.pop(0)
 
 _state_lock = threading.Lock()
 
@@ -104,10 +112,10 @@ def _board_from_source(path):
 
 
 def _board_from_dir(directory):
-    for tag in (("/examples/phat", "unicorn phat 8x8"),
-                ("/examples/hat", "unicorn-hat 16x8"),
-                ("/microdot-phat/examples", "microdot-phat"),
-                ("/unicorn-hat/examples", "unicorn-hat")):
+    for tag in (("/examples/unicorn-hat/phat", "unicorn phat 8x8"),
+                ("/examples/unicorn-hat/hat", "unicorn-hat 16x8"),
+                ("/examples/microdot-phat", "microdot-phat"),
+                ("/examples/unicorn-hat", "unicorn-hat")):
         if tag[0] in directory:
             return tag[1]
     return "generic"
@@ -129,9 +137,10 @@ def scan_scripts():
                       % (stem, registry[stem]))
                 continue
             registry[stem] = os.path.join(directory, name)
-            BOARD_TAGS[stem] = (
-                _board_from_dir(directory) if "/scripts/" in directory
-                else _board_from_source(registry[stem]))
+            tag = _board_from_dir(directory)
+            if tag == "generic":
+                tag = _board_from_source(registry[stem])
+            BOARD_TAGS[stem] = tag
     return registry
 
 
@@ -319,75 +328,6 @@ def detect_device():
         _last_detect = time.time()
         print("server: attached display detected:", kind)
         return kind
-
-
-def _iface_ip(name):
-    """IPv4 address of one interface, via SIOCGIFADDR."""
-    try:
-        import fcntl
-        import struct
-        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    except OSError:
-        return None
-    try:
-        packed = fcntl.ioctl(sock.fileno(), 0x8915,
-                             struct.pack("256s", name[:15].encode()))
-        return socket.inet_ntoa(packed[20:24])
-    except OSError:
-        return None
-    finally:
-        sock.close()
-
-
-def _default_iface():
-    try:
-        with open("/proc/net/route") as fh:
-            for line in fh.readlines()[1:]:
-                fields = line.split()
-                if len(fields) > 2 and fields[1] == "00000000":
-                    return fields[0]
-    except OSError:
-        pass
-    return None
-
-
-def local_ip():
-    """The LAN address other machines reach this Pi on.
-
-    The usual UDP-connect trick is refused with EPERM on these Pis, so fall
-    back to reading the address off the default-route interface.
-    """
-    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    try:
-        sock.connect(("10.255.255.255", 1))   # no packet is sent
-        ip = sock.getsockname()[0]
-        if ip and not ip.startswith("127."):
-            return ip
-    except OSError:
-        pass
-    finally:
-        sock.close()
-
-    candidates = []
-    name = _default_iface()
-    if name:
-        candidates.append(name)
-    try:
-        candidates += [n for _, n in socket.if_nameindex()]
-    except OSError:
-        pass
-    for name in candidates:
-        ip = _iface_ip(name)
-        if ip and not ip.startswith("127."):
-            return ip
-
-    try:
-        ip = socket.gethostbyname(socket.gethostname())
-        if ip and not ip.startswith("127."):
-            return ip
-    except OSError:
-        pass
-    return None
 
 
 def status():

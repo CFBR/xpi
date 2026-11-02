@@ -1,35 +1,40 @@
 # xpi display webserver
 
-Runs Pimoroni microdot-phat / Unicorn pHAT + HAT display scripts behind a web
-page. One script runs at a time; switching stops the old one and clears the
-board first.
+Runs Pimoroni microdot-phat and Unicorn HAT/pHAT display scripts behind a web
+page on a Raspberry Pi. One script runs at a time; switching stops the old one
+and clears the board first. Python 3 standard library only, no build step.
 
-Deploy target: a Raspberry Pi with `python3`, `git`, and the display
-libraries (`RPi.GPIO`, `smbus`; `pip3 install rpi_ws281x` on Unicorn boards).
+## Quick start
 
-## Install
+On the Pi:
 
 ```sh
-git clone https://github.com/CFBR/xpi.git
+git clone https://github.com/CFBR/xpi
 cd xpi
-sudo ./install.sh          # copies to /opt/xpi, installs the xpi systemd service
+sudo ./install.sh
+```
+
+The installer prints the page address, usually `http://<hostname>.local/` and
+`http://<pi-ip>/`. Open it and pick a script.
+
+From your laptop, without cloning on the Pi:
+
+```sh
+rsync -av --exclude .git xpi/ pi@raspberrypi.local:/tmp/xpi/
+ssh pi@raspberrypi.local 'sudo /tmp/xpi/install.sh'
 ```
 
 The service runs as root because the Unicorn LED driver needs `/dev/mem`.
 Logs: `journalctl -fu xpi`.
 
-A browser hitting a `/?action=...` URL gets the control page and re-applies
-the action client-side. curl gets JSON.
+## Control page
 
-## Control
-
-Open `http://<pi-ip>/`. Every click maps to a URL:
+Everything on the page maps to a URL, so the address bar always shows the
+action that was taken. Browsers get the page; curl gets JSON.
 
 ```
-http://<pi-ip>/?action=switch&script=snow     # Run or reset a script
+http://<pi-ip>/?action=switch&script=rainbow     # run or reset a script
 ```
-
-### API
 
 | Command | What it does |
 |---|---|
@@ -37,6 +42,7 @@ http://<pi-ip>/?action=switch&script=snow     # Run or reset a script
 | `?action=update&seconds=15&script=timer` | Start a countdown |
 | `?action=update&message=hi` | No script given: the running script picks it up live, no restart |
 | `?action=update&brightness=0.4` | Set LED brightness from 0 to 1. Unicorn boards only |
+| `?action=update&color=red` | Set the text or fill color, by name or `#RRGGBB` |
 | `?action=switch&script=clock&arg=x` | Stop the current script, run `clock` with positional args |
 | `?action=stop` | Kill the current script. Its last frame stays on the board |
 | `?action=clear` | Kill it and blank the attached board |
@@ -46,28 +52,53 @@ http://<pi-ip>/?action=switch&script=snow     # Run or reset a script
 Quote the whole URL because `?` and `&` are shell metacharacters. Repeating
 `arg=` passes multiple positional arguments.
 
-### state.json
+The page also draws: drag across the LED grid to light pixels, drag over lit
+ones to erase, and Send paints the board. It has a live preview of what the
+board shows, a brightness slider, a light/dark toggle, and a script editor that
+loads, saves, uploads and deletes files in `scripts/`.
+
+## state.json
 
 ```json
 {"message": "...", "seconds": 15, "brightness": 0.4, "revision": 17}
 ```
 
 `/action=update` increments `revision`. Scripts that poll the `revision()`
-function in `scripts/_xpi_state.py` pick up new `message`, `seconds` and
-`brightness` values without a restart.
+function in `scripts/_xpi_state.py` pick up new `message`, `seconds`,
+`brightness` and `color` values without a restart.
 
 `brightness` applies to the unicorn scripts. The microdot-phat is monochrome
 and has no dimming, so the slider is disabled when that board is attached.
 
-### Boards
+## Boards
 
-Each script gets a tag from what it imports: `microdot-phat`, `unicorn-hat`,
-`unicorn phat 8x8`, or `generic`. The boards have different pixel layouts, so
-a microdot animation does not work on a Unicorn pHAT. The UI filters scripts
-by board tab. `generic` and `both` tags mean the script was not written for
-either layout.
+Each script gets a tag from the folder it lives in, or from what it imports:
+`microdot-phat`, `unicorn-hat`, `unicorn phat`, or `both`. The layouts differ,
+so a microdot animation does not work on a Unicorn pHAT. The page filters
+scripts by board tab and selects the tab for the detected board.
 
-### Adding a script
+Detection is definitive for the microdot-phat (I2C chips answer) and for a
+Unicorn HAT (EEPROM). A Unicorn pHAT has no EEPROM, so it is reported as
+`inferred`.
 
-Drop `myscript.py` into `/opt/xpi/scripts/`; it appears on the next page
-load. Name a file with a leading `_` to keep it out of the list.
+## Scripts included
+
+`scripts/` has the xpi scripts: `message`, `timer`, `unicorn_message`,
+`hostname`, `ip`, `draw`, `solid`, `clear`.
+
+`examples/` has every script from the archived Pimoroni example sets, copied
+with credit: 12 microdot-phat examples and 28 Unicorn HAT/pHAT examples,
+including the `hat/` and `phat/` subfolders. See `examples/README.md`.
+
+## Adding a script
+
+Drop `myscript.py` into `/opt/xpi/scripts/` and it appears on the next page
+load. Name a file with a leading `_` to keep it out of the list. The page's
+editor does the same thing over HTTP.
+
+## Credits
+
+The display libraries in `vendor/` and the examples in `examples/` come from
+Pimoroni Ltd, MIT licensed: [microdot-phat](https://github.com/CFBR/microdot-phat)
+and [unicorn-hat](https://github.com/CFBR/unicorn-hat). The license texts are
+in `LICENSES/`. xpi itself is MIT, see `LICENSE`.

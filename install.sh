@@ -1,25 +1,23 @@
 #!/bin/sh
 # xpi Pi-side deployer. Run with sudo on the Raspberry Pi:
-#   sudo ./install.sh            (after copying this tree to the Pi)
+#   sudo ./install.sh
 set -e
 
 DEST=/opt/xpi
 SRC="$(cd "$(dirname "$0")" && pwd)"
 
 echo "deploying from $SRC to $DEST"
-mkdir -p "$DEST"
+mkdir -p "$DEST/scripts"
 cp "$SRC/server.py" "$SRC/index.html" "$SRC/config.json" "$DEST/"
-cp -r "$SRC/scripts" "$DEST/"
+cp -r "$SRC/scripts/." "$DEST/scripts/"          # keeps scripts saved from the web editor
+cp -r "$SRC/examples" "$SRC/vendor" "$SRC/LICENSES" "$DEST/"
+if [ -f "$SRC/README.md" ]; then cp "$SRC/README.md" "$DEST/"; fi
 
-# display library libs: shallow clone only if absent
-[ -d "$DEST/repos/microdot-phat" ] || \
-  git clone --depth 1 https://github.com/CFBR/microdot-phat "$DEST/repos/microdot-phat"
-[ -d "$DEST/repos/unicorn-hat" ] || \
-  git clone --depth 1 https://github.com/CFBR/unicorn-hat "$DEST/repos/unicorn-hat"
-
-# display library deps
-apt -y install python3-rpi.gpio python3-smbus python3-dev 2>/dev/null || apt-get -y install python3-rpi.gpio python3-smbus python3-dev
-pip3 install rpi_ws281x 2>/dev/null || true   # needed to drive/clear Unicorn HAT/pHAT LEDs
+# display library dependencies (already present on most Pi images)
+apt -y install python3-rpi.gpio python3-smbus python3-dev >/dev/null 2>&1 || \
+  apt-get -y install python3-rpi.gpio python3-smbus python3-dev >/dev/null 2>&1 || true
+apt -y install python3-smbus2 >/dev/null 2>&1 || pip3 install smbus2 >/dev/null 2>&1 || true
+pip3 install rpi_ws281x >/dev/null 2>&1 || true   # drives and clears Unicorn HAT/pHAT
 
 cat > /etc/systemd/system/xpi.service <<'EOF'
 [Unit]
@@ -37,5 +35,22 @@ WantedBy=multi-user.target
 EOF
 
 systemctl daemon-reload
-systemctl enable --now xpi
-echo "deployed. serves on http://$(hostname -I | awk '{print $1}')/ (port 80)"
+systemctl enable xpi >/dev/null 2>&1 || true
+systemctl restart xpi
+
+# Prefer the default-route address; hostname -I can list Tailscale first.
+IP=$(ip route get 1.1.1.1 2>/dev/null | awk '{for (i=1;i<=NF;i++) if ($i=="src") {print $(i+1); exit}}')
+[ -n "$IP" ] || IP=$(hostname -I 2>/dev/null | awk '{print $1}')
+NAME=$(hostname)
+
+echo
+echo "xpi is running. Open the control page:"
+echo
+echo "  http://$NAME.local/"
+if [ -n "$IP" ]; then
+  echo "  http://$IP/"
+fi
+echo
+echo "  api:  http://${IP:-$NAME.local}/?action=update&script=message&message=hello"
+echo "  logs: journalctl -fu xpi"
+echo

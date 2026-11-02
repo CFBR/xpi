@@ -1,4 +1,4 @@
-# cloned display library repos (install.sh re-creates them on the Pi)
+# optional clones of the original Pimoroni forks (not used by install.sh)
 repos/
 # runtime state file (created/owned by server.py)
 state.json
