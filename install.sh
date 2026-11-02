@@ -17,9 +17,9 @@ cp -r "$SRC/scripts" "$DEST/"
 [ -d "$DEST/repos/unicorn-hat" ] || \
   git clone --depth 1 https://github.com/CFBR/unicorn-hat "$DEST/repos/unicorn-hat"
 
-# one-time prerequisite: the repos' own install.sh puts system deps in place
-echo "reminder: run each repo's own install.sh once if you haven't yet"
-echo "  ($DEST/repos/*/install.sh) — they need RPi.GPIO / smbus etc."
+# display library deps
+apt -y install python3-rpi.gpio python3-smbus python3-dev 2>/dev/null || apt-get -y install python3-rpi.gpio python3-smbus python3-dev
+pip3 install rpi_ws281x 2>/dev/null || true   # needed to drive/clear Unicorn HAT/pHAT LEDs
 
 cat > /etc/systemd/system/xpi.service <<'EOF'
 [Unit]
