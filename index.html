@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>xpi display control</title>
+<style>
+  :root { color-scheme: light dark; }
+  body { font-family: system-ui, sans-serif; margin: 1rem auto; max-width: 40rem; padding: 0 1rem; }
+  table { border-collapse: collapse; width: 100%; }
+  td, th { border-bottom: 1px solid #8884; padding: .35rem .5rem; text-align: left; }
+  button { padding: .25rem .8rem; }
+  fieldset { margin: 1rem 0; border: 1px solid #8884; }
+  pre { background: #8881; padding: .5rem; overflow-x: auto; white-space: pre-wrap; }
+  .running { font-weight: bold; }
+</style>
+</head>
+<body>
+<h1>xpi display control</h1>
+
+<table id="scripts"><tbody></tbody></table>
+
+<p>
+  <button onclick="act('stop')">Stop</button>
+  <button onclick="act('clear')">Clear board</button>
+</p>
+
+<fieldset>
+  <legend>Boot script (launches at boot)</legend>
+  <select id="boot"></select>
+  <button onclick="saveBoot()">Save boot</button>
+</fieldset>
+
+<fieldset>
+  <legend>Send message / timer</legend>
+  <label>text <input id="msg" size="24" placeholder="message"></label>
+  <label>seconds <input id="secs" type="number" min="0" style="width:5em" placeholder="optional"></label>
+  <button onclick="send()">Send</button>
+</fieldset>
+
+<pre id="info"></pre>
+
+<script>
+"use strict";
+var running = null;
+
+async function refresh() {
+  var s;
+  try { s = await (await fetch('/action=status')).json(); } catch (e) { return; }
+  running = s.running;
+
+  var tbody = document.querySelector('#scripts tbody');
+  tbody.innerHTML = '';
+  (s.scripts || []).forEach(function (name) {
+    var tr = document.createElement('tr');
+    if (name === running) tr.className = 'running';
+    var isRunning = name === running && s.pid;
+    tr.innerHTML = '<td>' + name + '</td>' +
+      '<td><button onclick="run(this)" data-name="' + name + '">' +
+        (isRunning ? 'restart' : 'Run') + '</button></td>' +
+      '<td>' + (isRunning ? ('&nbsp; pid ' + s.pid) : '') + '</td>';
+    tbody.appendChild(tr);
+  });
+
+  var sel = document.getElementById('boot');
+  if (!sel.options.length) {
+    var none = document.createElement('option');
+    none.value = 'none'; none.textContent = '(nothing)';
+    sel.appendChild(none);
+    (s.scripts || []).forEach(function (name) {
+      var opt = document.createElement('option');
+      opt.value = name; opt.textContent = name;
+      sel.appendChild(opt);
+    });
+  }
+  sel.value = s.boot || 'none';
+
+  var lines = [];
+  if (running) {
+    var up = '';
+    if (s.started) {
+      var mins = Math.floor((Date.now() - Date.parse(s.started)) / 60000);
+      up = ', up ' + (mins >= 60 ? Math.floor(mins/60) + ' h '
+                                               : '') + (mins % 60) + ' min';
+    }
+    lines.push('running: ' + running + ' (pid ' + s.pid + up + ')');
+  } else {
+    lines.push('nothing running');
+  }
+  lines.push('state revision: ' + s.revision + ', boot: ' + (s.boot || 'none'));
+  lines.push('--- last output ---');
+  lines.push(s.log || '');
+  document.getElementById('info').textContent = lines.join('\n');
+}
+
+async function act(action, extra) {
+  var url = 'action=' + action + (extra ? '&' + extra : '');
+  await fetch(url);
+  refresh();
+}
+
+function run(btn) {
+  act('switch', 'script=' + encodeURIComponent(btn.dataset.name));
+}
+
+function saveBoot() {
+  var sel = document.getElementById('boot');
+  act('boot', 'script=' + encodeURIComponent(sel.value));
+}
+
+function send() {
+  var text = document.getElementById('msg').value;
+  var secs = document.getElementById('secs').value;
+  if (text) {
+    act('update', 'script=message&message=' + encodeURIComponent(text));
+  } else if (secs) {
+    act('update', 'script=timer&seconds=' + encodeURIComponent(secs));
+  }
+  document.getElementById('msg').value = '';
+}
+
+refresh();
+setInterval(refresh, 5000);
+</script>
+</body>
+</html>
