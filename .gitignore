@@ -1,0 +1,5 @@
+# cloned display library repos (install.sh re-creates them on the Pi)
+repos/
+# runtime state file (created/owned by server.py)
+state.json
+__pycache__/
