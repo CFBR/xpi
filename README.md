@@ -67,13 +67,25 @@ microdot-phat / unicorn-hat repo example: is already scanned from
 
 ## Brittle bits / notes
 
-- **One child at a time.** Switching stops the previous child (SIGINT → 2 s
+- `switch` (and `update&script=...`) stops the previous child and **blanks
+  the board first**, so a running animation's last frame no longer shows
+  through under the new script.
+- One child at a time. Switching stops the previous child (SIGINT → 2 s
   → SIGTERM → 2 s → SIGKILL) — the boards share hardware so scripts are never
   co-resident.
 - MEMORY: ~15 MB RSS (stdlib interpreter + one child script); fine on a Pi
   Zero (512 MB).
 - No HTTPS, no auth: LAN-trusted device by design.
 - Logs go to stdout/stderr: `journalctl -fu xpi` on the Pi.
+- Every script carries a board tag (`microdot-phat`, `unicorn-hat`,
+  `unicorn phat 8x8`, `generic`) derived from what it imports / which repo
+  dir it came from; the UI filters by board tab, since the two boards have
+  different pixel layouts and animations are not interchangeable between
+  microdot phat and unicorn phat.
+- UI actions update the address bar (e.g. Run on `snow` →
+  `/?action=switch&script=snow`); reloading that URL in a browser re-applies
+  the action and re-serves the page (browsers get the control page,
+  curl-style `Accept: */*` clients still get the JSON API).
 - A `stop` leaves the last frame on the board; `clear` blanks it.
 - Boot script mismatch (e.g. deleted after being set) logs a warning and
   boots with no script — the service never crashes because of that.

@@ -173,10 +173,10 @@ def start_child(stem, args=()):
     path = SCRIPT_REGISTRY[stem]
     with _sup_lock:
         # stop old child and blank the board so its last frame
-        # doesn't bleed under the new script
-        clear_board()
+        # doesn't bleed under the new script; kept in the log ring
         with _log_lock:
             _log_chunks.clear()
+        clear_board()
         _child = subprocess.Popen(
             [sys.executable, "-u", path, *args],
             cwd=os.path.dirname(path), env=child_env(),
