@@ -61,7 +61,7 @@
     <button onclick="sendPixels()">Send drawing</button>
     <button onclick="clearPixels()">Blank</button>
   </div>
-  <div id="draw" style="display:flex;gap:1px;overflow-x:auto;max-width:96vw"></div>
+  <div id="draw" style="gap:1px"></div>
   <div class="info">click cells to set, click again to erase; sending makes <code>draw</code> the running script</div>
 </fieldset>
 
@@ -158,6 +158,10 @@ var PALETTE = ["#ffffff", "#ff0000", "#00ff00", "#0000ff",
                "#ffff00", "#00ffff", "#ff00ff", "#804000"];
 
 function rebuildDrawGrid(shape) {
+  var box = document.getElementById("draw");
+  box.style.display = "grid";
+  box.style.gridTemplateColumns = "repeat(" + shape.c + ", 9px)";
+  box.style.maxWidth = "96vw";
   if (shape.mono) PALETTE = ["#e6e6e6"]; else { PALETTE = ["#ffffff", "#ff0000",
     "#00ff00", "#0000ff", "#ffff00", "#00ffff", "#ff00ff", "#804000"]; }
   document.getElementById("palette").innerHTML = "";
