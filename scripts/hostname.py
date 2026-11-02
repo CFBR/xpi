@@ -9,7 +9,7 @@ import os
 import sys
 import time
 
-import xpi_state
+import _xpi_state
 import _display
 
 DEFAULT_COLOR = (255, 255, 255)
@@ -28,13 +28,13 @@ def run_microdot(text):
     import microdotphat
 
     print("hostname.py: microdot-phat showing", text)
-    current_color_revision = xpi_state.revision()
+    current_color_revision = _xpi_state.revision()
     microdotphat.write_string(text)
     microdotphat.show()
 
     while True:
-        if xpi_state.revision() != current_color_revision:
-            current_color_revision = xpi_state.revision()
+        if _xpi_state.revision() != current_color_revision:
+            current_color_revision = _xpi_state.revision()
             new_text = get_text()
             if new_text != text:
                 text = new_text
@@ -55,15 +55,15 @@ def run_unicorn(text, color=None):
     unicornhat.brightness(0.5)
     grid = _display.text_bitmap(text)
     offset = 0
-    last_revision = xpi_state.revision()
+    last_revision = _xpi_state.revision()
     print("hostname.py: unicorn showing", text, "color", color)
 
     while True:
-        new_revision = xpi_state.revision()
+        new_revision = _xpi_state.revision()
         if new_revision != last_revision:
             last_revision = new_revision
             new_color = _display.parse_color(
-                xpi_state.value("color"), DEFAULT_COLOR)
+                _xpi_state.value("color"), DEFAULT_COLOR)
             if new_color != color:
                 color = new_color
                 print("hostname.py: color switched to", color)
@@ -90,7 +90,7 @@ def main():
     except Exception as exc:
         print("hostname.py: no unicorn-hat:", exc)
         raise SystemExit(1)
-    color = xpi_state.value("color")
+    color = _xpi_state.value("color")
     return run_unicorn(get_text(), color)
 
 
