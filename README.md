@@ -1,8 +1,8 @@
 # xpi display webserver
 
 Runs Pimoroni microdot-phat / Unicorn pHAT + HAT display scripts behind a web
-page. One script runs at a time; switching stops the old one and clears both
-boards first.
+page. One script runs at a time; switching stops the old one and clears the
+board first.
 
 Deploy target: a Raspberry Pi with `python3`, `git`, and the display
 libraries (`RPi.GPIO`, `smbus`; `pip3 install rpi_ws281x` on Unicorn boards).
@@ -39,7 +39,7 @@ http://<pi-ip>/?action=switch&script=snow     # Run or reset a script
 | `?action=update&brightness=0.4` | Set LED brightness from 0 to 1. Unicorn boards only |
 | `?action=switch&script=clock&arg=x` | Stop the current script, run `clock` with positional args |
 | `?action=stop` | Kill the current script. Its last frame stays on the board |
-| `?action=clear` | Kill it and blank both boards |
+| `?action=clear` | Kill it and blank the attached board |
 | `?action=boot&script=clock` | Set the boot script. Omit it or use `none` to unset |
 | `?action=status` | Running, pid, boot, scripts, boards, ip, revision, log |
 
