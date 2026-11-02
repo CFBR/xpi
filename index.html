@@ -663,6 +663,23 @@ function renderPalette() {
 
 function keyOf(x, y) { return x + "," + y; }
 
+var COLOR_NAMES = {
+  red: "#ff0000", green: "#00ff00", blue: "#0000ff", white: "#ffffff",
+  yellow: "#ffff00", orange: "#ff8000", purple: "#8000ff",
+  magenta: "#ff00ff", cyan: "#00ffff", pink: "#ff4080"
+};
+
+function colorCss(value) {
+  var text = String(value == null ? "" : value).trim().toLowerCase();
+  if (COLOR_NAMES[text]) return COLOR_NAMES[text];
+  if (/^#?[0-9a-f]{6}$/.test(text)) return "#" + text.replace("#", "");
+  if (/^#?[0-9a-f]{3}$/.test(text)) {
+    var t = text.replace("#", "");
+    return "#" + t[0] + t[0] + t[1] + t[1] + t[2] + t[2];
+  }
+  return "#e6e6e6";
+}
+
 function paintCell(x, y, val) {
   if (!shapeNow || x < 0 || y < 0 || x >= shapeNow.c || y >= shapeNow.r) return;
   var el = cellsEl[y * shapeNow.c + x];
@@ -900,6 +917,7 @@ function renderPreview(designState) {
   var shape = shapeOf(state.attached);
   var note = document.getElementById("previewNote");
   var cells = [];
+  var textColor = shape.mono ? "#e6e6e6" : colorCss(designState && designState.color);
 
   var fillTextPreview = function (text) {
     var rows = textGrid(text);
@@ -907,7 +925,7 @@ function renderPreview(designState) {
     for (var y = 0; y < Math.min(5, shape.r); y++) {
       for (var x = 0; x < shape.c; x++) {
         cells[y * shape.c + x] = rows[y][(x + off) % rows[0].length]
-          ? "#e6e6e6" : null;
+          ? textColor : null;
       }
     }
   };

@@ -4,6 +4,8 @@ Runs Pimoroni microdot-phat and Unicorn HAT/pHAT display scripts behind a web
 page on a Raspberry Pi. One script runs at a time; switching stops the old one
 and clears the board first. Python 3 standard library only, no build step.
 
+![xpi control page](docs/control-page.png)
+
 ## Quick start
 
 On the Pi:
@@ -86,9 +88,9 @@ Unicorn HAT (EEPROM). A Unicorn pHAT has no EEPROM, so it is reported as
 `scripts/` has the xpi scripts: `message`, `timer`, `unicorn_message`,
 `hostname`, `ip`, `draw`, `solid`, `clear`.
 
-`examples/` has every script from the archived Pimoroni example sets, copied
-with credit: 12 microdot-phat examples and 28 Unicorn HAT/pHAT examples,
-including the `hat/` and `phat/` subfolders. See `examples/README.md`.
+`scripts/` also holds every script from the archived Pimoroni example sets,
+under `microdot-phat/` and `unicorn-hat/`: 12 microdot-phat examples and 28
+Unicorn HAT/pHAT examples. See `scripts/README.md`.
 
 ## Adding a script
 
@@ -98,7 +100,7 @@ editor does the same thing over HTTP.
 
 ## Credits
 
-The display libraries in `vendor/` and the examples in `examples/` come from
+The display libraries in `vendor/` and the examples in `scripts/` come from
 Pimoroni Ltd, MIT licensed: [microdot-phat](https://github.com/CFBR/microdot-phat)
 and [unicorn-hat](https://github.com/CFBR/unicorn-hat). The license texts are
 in `LICENSES/`. xpi itself is MIT, see `LICENSE`.

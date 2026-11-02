@@ -10,7 +10,7 @@ echo "deploying from $SRC to $DEST"
 mkdir -p "$DEST/scripts"
 cp "$SRC/server.py" "$SRC/index.html" "$SRC/config.json" "$DEST/"
 cp -r "$SRC/scripts/." "$DEST/scripts/"          # keeps scripts saved from the web editor
-cp -r "$SRC/examples" "$SRC/vendor" "$SRC/LICENSES" "$DEST/"
+cp -r "$SRC/vendor" "$SRC/LICENSES" "$DEST/"
 if [ -f "$SRC/README.md" ]; then cp "$SRC/README.md" "$DEST/"; fi
 
 # display library dependencies (already present on most Pi images)

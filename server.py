@@ -24,10 +24,10 @@ INDEX_FILE = os.path.join(ROOT, "index.html")
 SCRIPTS_DIR = os.path.join(ROOT, "scripts")
 SCAN_DIRS = [
     SCRIPTS_DIR,
-    os.path.join(ROOT, "examples/microdot-phat"),
-    os.path.join(ROOT, "examples/unicorn-hat"),
-    os.path.join(ROOT, "examples/unicorn-hat/hat"),
-    os.path.join(ROOT, "examples/unicorn-hat/phat"),
+    os.path.join(SCRIPTS_DIR, "microdot-phat"),
+    os.path.join(SCRIPTS_DIR, "unicorn-hat"),
+    os.path.join(SCRIPTS_DIR, "unicorn-hat", "hat"),
+    os.path.join(SCRIPTS_DIR, "unicorn-hat", "phat"),
 ]
 REPO_LIBPATHS = [
     os.path.join(ROOT, "vendor/microdot-phat"),
@@ -112,10 +112,10 @@ def _board_from_source(path):
 
 
 def _board_from_dir(directory):
-    for tag in (("/examples/unicorn-hat/phat", "unicorn phat 8x8"),
-                ("/examples/unicorn-hat/hat", "unicorn-hat 16x8"),
-                ("/examples/microdot-phat", "microdot-phat"),
-                ("/examples/unicorn-hat", "unicorn-hat")):
+    for tag in (("/scripts/unicorn-hat/phat", "unicorn phat 8x8"),
+                ("/scripts/unicorn-hat/hat", "unicorn-hat 16x8"),
+                ("/scripts/microdot-phat", "microdot-phat"),
+                ("/scripts/unicorn-hat", "unicorn-hat")):
         if tag[0] in directory:
             return tag[1]
     return "generic"
