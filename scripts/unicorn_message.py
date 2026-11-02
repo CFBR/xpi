@@ -3,14 +3,14 @@
 # Text comes from state.json "message" (live), falling back to sys.argv[1],
 # then "hi"; color from state.json "color" (live), names or "#RRGGBB",
 # default white. Uses the shared 3x5 renderer in _display.py and polls
-# xpi_state.revision() each scroll frame, so an /action=update revises
+# _xpi_state.revision() each scroll frame, so an /action=update revises
 # text/color without restarting.
 
 import sys
 import time
 
 import unicornhat
-import xpi_state
+import _xpi_state
 import _display
 
 DEFAULT_COLOR = (255, 255, 255)
@@ -18,7 +18,7 @@ DEFAULT_COLOR = (255, 255, 255)
 
 
 def get_message():
-    text = xpi_state.value("message")
+    text = _xpi_state.value("message")
     if text is None and len(sys.argv) > 1:
         text = sys.argv[1]
     return str(text if text is not None else "hi").upper()
@@ -27,16 +27,16 @@ def get_message():
 shape, unicornhat = _display.setup_unicorn()
 
 text = get_message()
-color = _display.parse_color(xpi_state.value("color"), DEFAULT_COLOR)
+color = _display.parse_color(_xpi_state.value("color"), DEFAULT_COLOR)
 grid = _display.text_bitmap(text)
 offset = 0
-last_revision = xpi_state.revision()
+last_revision = _xpi_state.revision()
 print("unicorn_message.py: displaying", text, "color", color, "shape", shape)
 
 while True:
-    if xpi_state.revision() != last_revision:
-        last_revision = xpi_state.revision()
-        new_color = _display.parse_color(xpi_state.value("color"), DEFAULT_COLOR)
+    if _xpi_state.revision() != last_revision:
+        last_revision = _xpi_state.revision()
+        new_color = _display.parse_color(_xpi_state.value("color"), DEFAULT_COLOR)
         if new_color != color:
             color = new_color
             print("unicorn_message.py: color switched to", color)
