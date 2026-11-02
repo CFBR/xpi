@@ -89,6 +89,7 @@ def run_microdot(pixels):
 
 def draw(pixels, show):
     """The microdot-phat is 45x7 monochrome; pixels outside are skipped."""
+    import microdotphat
     microdotphat.fill(0)
     for entry in pixels:
         if isinstance(entry, (list, tuple)) and len(entry) >= 2 and \
