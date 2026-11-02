@@ -24,8 +24,8 @@ def get_message():
     return str(text if text is not None else "hi").upper()
 
 
-shape = unicornhat.get_shape()
 unicornhat.set_layout(unicornhat.AUTO)
+shape = unicornhat.get_shape()
 unicornhat.rotation(0)
 unicornhat.brightness(BRIGHTNESS)
 

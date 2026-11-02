@@ -69,7 +69,7 @@
 "use strict";
 var state = null, board = "all", firstRefresh = true;
 var boardMap = {"microdot-phat": "microdot-phat",
-                "unicorn phat 8x8": "unicorn-phat",
+                "unicorn phat": "unicorn-phat",
                 "unicorn-hat 16x8": "unicorn-hat",
                 "unicorn-hat": "unicorn-hat", "both": "microdot-phat",
                 "generic": "all"};
@@ -227,7 +227,7 @@ function shapeOf(attached) {
   var a = attached || "";
   if (a === "microdot-phat") return { c: 45, r: 7, mono: true };
   if (a.indexOf("unicorn-hat 16x8") >= 0) return { c: 16, r: 8, mono: false };
-  if (a.indexOf("unicorn phat") >= 0) return { c: 8, r: 8, mono: false };
+  if (a.indexOf("unicorn phat") >= 0) return { c: 8, r: 4, mono: false };
   return { c: 8, r: 8, mono: false };
 }
 

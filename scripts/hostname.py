@@ -49,8 +49,8 @@ def run_unicorn(text, color=None):
     import unicornhat
 
     color = _display.parse_color(color, DEFAULT_COLOR)
-    shape = unicornhat.get_shape()
     unicornhat.set_layout(unicornhat.AUTO)
+    shape = unicornhat.get_shape()
     unicornhat.rotation(0)
     unicornhat.brightness(0.5)
     grid = _display.text_bitmap(text)

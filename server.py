@@ -283,7 +283,7 @@ def detect_device():
             except OSError:
                 pass
         if kind == "none-probed":
-            kind = "unicorn phat 8x8 (inferred)"
+            kind = "unicorn phat (inferred)"
         _attached = kind
         _last_detect = time.time()
         print("server: attached display detected:", kind)
