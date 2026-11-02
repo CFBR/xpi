@@ -264,13 +264,13 @@ def detect_device():
             return _attached
         kind = "none-probed"
         try:
-            sys.path.insert(0, os.path.join(ROOT, "repos/microdot-phat/library/microdotphat"))
+            sys.path.insert(0, os.path.join(ROOT, "repos/microdot-phat/library"))
             try:
-                importlib.import_module("smbus2")
-                matrix = importlib.import_module("matrix")
-                if matrix.is_connected(0x61):
+                importlib.import_module("microdotphat")
+                md = importlib.import_module("microdotphat")
+                if md.is_connected():
                     kind = "microdot-phat"
-            except (ImportError, OSError, RuntimeError):
+            except (ImportError, AttributeError, OSError, RuntimeError):
                 pass
         finally:
             sys.path.pop(0)
