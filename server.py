@@ -375,7 +375,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 else:
                     self.respond(404, {"error": "no action"})
                 return
-            self._drain_body()
+            if action != "savescript":
+                self._drain_body()
             if action == "update":
                 self.act_update(params)
             elif action == "switch":
@@ -390,6 +391,12 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 self.respond(200, status(), "json")
             elif action == "state":
                 self.respond(200, _read_state(), "json")
+            elif action == "getscript":
+                self.act_getscript(params)
+            elif action == "savescript":
+                self.act_savescript(params)
+            elif action == "delscript":
+                self.act_delscript(params)
             else:
                 self.respond(404, {"error": "unknown action", "action": action})
         except (BrokenPipeError, ConnectionResetError):
@@ -458,6 +465,83 @@ class Handler(http.server.BaseHTTPRequestHandler):
         except OSError:
             return self.respond(404, {"error": "index.html missing"})
         self.respond(200, body, "text/html")
+
+    # ---------------------------------------------------------- scripts --
+    @staticmethod
+    def safe_script_path(stem, creating=False):
+        """Only `stem.py` (no separators) inside SCRIPTS_DIR; .py is added
+        unless already present; server-created files must be user-owned."""
+        if not stem or "/" in stem or ".." in stem or "\0" in stem:
+            return None
+        if not stem.endswith(".py"):
+            stem += ".py"
+        if creating and (stem.startswith("_") or stem == "__init__.py"):
+            return None
+        return os.path.join(SCRIPTS_DIR, stem)
+
+    def act_getscript(self, params):
+        stem = (params.pop("script", [None])[0] or "").strip()
+        path = self.safe_script_path(stem)
+        if path is None:
+            return self.respond(400, {"error": "bad script name"})
+        if not os.path.isfile(path):
+            return self.respond(404, {"error": "no such script",
+                                      "script": stem})
+        try:
+            with open(path, "r") as fh:
+                text = fh.read()
+        except OSError as exc:
+            return self.respond(500, {"error": str(exc)})
+        self.respond(200, {"script": stem, "code": text})
+
+    def act_savescript(self, params):
+        stem = (params.pop("script", [None])[0] or "").strip()
+        path = self.safe_script_path(stem, creating=True)
+        if path is None:
+            return self.respond(400, {"error": "bad script name"})
+        length = int(self.headers.get("Content-Length", 0) or 0)
+        try:
+            body = self.rfile.read(length) if length else b""
+        except OSError as exc:
+            return self.respond(500, {"error": "read body: %s" % exc})
+        try:
+            text = body.decode("utf-8")
+        except UnicodeDecodeError:
+            return self.respond(400, {"error": "body must be utf-8 text"})
+        if not text.endswith("\n"):
+            text += "\n"
+        try:
+            import ast
+            ast.parse(text)
+        except SyntaxError as exc:
+            return self.respond(400, {"error": "syntax error: %s" % exc})
+        try:
+            with open(path, "w") as fh:
+                fh.write(text)
+            try:
+                os.chown(path, 1000, 1000)
+            except OSError:
+                pass       # non-root servers skip this silently
+        except OSError as exc:
+            return self.respond(500, {"error": str(exc)})
+        print("server: saved script %s (%d bytes)" % (path, len(text)))
+        self.respond(200, {"ok": True, "script": os.path.basename(path)})
+
+    def act_delscript(self, params):
+        """Remove a file from scripts/ — shipped underscore files stay."""
+        stem = (params.pop("script", [None])[0] or "").strip()
+        path = self.safe_script_path(stem, creating=True)
+        if path is None:
+            return self.respond(400, {"error": "bad script name"})
+        if not os.path.isfile(path):
+            return self.respond(404, {"error": "no such script",
+                                      "script": stem})
+        try:
+            os.remove(path)
+        except OSError as exc:
+            return self.respond(500, {"error": str(exc)})
+        print("server: deleted script %s" % path)
+        self.respond(200, {"ok": True, "script": os.path.basename(path)})
 
     # --------------------------------------------------------------- out --
     def respond(self, code, payload, kind="json"):

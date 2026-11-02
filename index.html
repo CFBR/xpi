@@ -65,6 +65,22 @@
   <div class="info">click cells to set, click again to erase; sending makes <code>draw</code> the running script</div>
 </fieldset>
 
+<fieldset style="margin:.4rem 0">
+  <legend>Scripts</legend>
+  <div class="row">
+    <select id="edList" style="max-width:12rem"></select>
+    <button onclick="loadScript()">Load</button>
+    <input id="edName" placeholder="newscript" size="10">
+    <button onclick="saveScript()">Save</button>
+    <button onclick="deleteScript()">Delete file</button>
+    <label>upload
+      <input type="file" id="edFile" accept=".py,text/python" onchange="fileChosen(this)">
+    </label>
+  </div>
+  <textarea id="edText" rows="10" style="width:100%;font-family:monospace;font-size:12px"
+            spellcheck="false" placeholder="edit or paste python here"></textarea>
+</fieldset>
+
 <script>
 "use strict";
 var state = null, board = "all", firstRefresh = true;
@@ -122,6 +138,17 @@ async function refresh() {
   renderJ();
   renderPreview(design);
   rebuildDrawGrid(shapeOf(state.attached));
+  var ed = document.getElementById("edList");
+  var currentVal = ed.value;
+  ed.innerHTML = "";
+  (state.scripts || []).filter(function (n) { return n !== "draw"; })
+    .forEach(function (stem) {
+      var opt = document.createElement("option");
+      opt.value = stem; opt.textContent = stem + ".py";
+      ed.appendChild(opt);
+    });
+  if (currentVal && (state.scripts || []).indexOf(currentVal) >= 0)
+    ed.value = currentVal;
 }
 
 function renderJ() {
@@ -219,6 +246,67 @@ function clearPixels() {
   drawing = [];
   sendPixels();
 }
+
+/* ---------- script upload / edit / delete via the page ---------- */
+
+async function loadScript() {
+  var stem = document.getElementById("edList").value || "";
+  if (!stem) return;
+  var res = await fetch("action=getscript&script=" + encodeURIComponent(stem),
+                        {headers: {"Accept": "application/json"}});
+  var data = await res.json();
+  if (data.code != null) {
+    document.getElementById("edText").value = data.code;
+    document.getElementById("edName").value = stem.replace(/\.py$/, "");
+    document.getElementById("edText").placeholder = "";
+  } else {
+    alert("load failed: " + (data.error || res.status));
+  }
+}
+
+function fileChosen(input) {
+  var file = input.files && input.files[0];
+  if (!file) return;
+  document.getElementById("edName").value =
+    file.name.replace(/\.py$/, "").replace(/[^A-Za-z0-9_-]+/g, "_");
+  var reader = new FileReader();
+  reader.onload = function () {
+    document.getElementById("edText").value = reader.result;
+  };
+  reader.readAsText(file);
+}
+
+async function saveScript() {
+  var stem = document.getElementById("edName").value.trim();
+  var body = document.getElementById("edText").value;
+  if (!stem || !body.trim()) return alert("script name and code required");
+  var resp = await fetch("action=savescript&script=" +
+                         encodeURIComponent(stem.replace(/[^A-Za-z0-9_-]+/g, "_")),
+                         {method: "POST", headers: {"Content-Type":
+                            "text/plain; charset=utf-8",
+                          "Accept": "application/json"}, body: body});
+  var data = await resp.json();
+  if (data.ok) {
+    await refresh();
+    document.getElementById("edList").value = data.script.replace(/\.py$/, "");
+  } else {
+    alert("save failed: " + (data.error || resp.status));
+  }
+  return data.ok;
+}
+
+async function deleteScript() {
+  var stem = document.getElementById("edList").value || "";
+  if (!stem || !confirm("Delete " + stem + " from the Pi?")) return;
+  var resp = await fetch("action=delscript&script=" +
+                         encodeURIComponent(stem),
+                         {headers: {"Accept": "application/json"}});
+  var data = await resp.json();
+  if (!data.ok) alert("delete failed: " + (data.error || resp.status));
+  await refresh();
+  document.getElementById("edText").value = "";
+}
+
 
 
 /* ---------- what the board is showing (approximate preview) ---------- */
