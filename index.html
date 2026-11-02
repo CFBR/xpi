@@ -3,13 +3,34 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta name="color-scheme" content="dark">
+<script>
+try {
+  var savedTheme = localStorage.getItem("xpi-theme");
+  if (savedTheme) document.documentElement.dataset.theme = savedTheme;
+} catch (e) {}
+</script>
 <title>xpi display control</title>
 <style>
   :root {
     --bg: #0c1015;
+    --glow1: #17303f;
+    --glow2: #1a2436;
+    --card-top: #171e27;
     --panel: #151b23;
     --panel2: #1b232d;
+    --input-bg: #0f151c;
+    --tabs-bg: #10161d;
+    --well: #0a0e13;
+    --well-glow: #14202b;
+    --preview-off: #161d26;
+    --chip-bg: #1a222c;
+    --chip-hover: #223040;
+    --cell: #1a222c;
+    --cell-line: #2b3744;
+    --hover: #232d3a;
+    --pill: #111720cc;
+    --run-bg: #16281f;
+    --run-text: #e8fff2;
     --line: #26303b;
     --line2: #33414f;
     --text: #dbe4ee;
@@ -20,6 +41,35 @@
     --radius: 12px;
     color-scheme: dark;
   }
+  :root[data-theme="light"] {
+    --bg: #eef1f6;
+    --glow1: #dce8f4;
+    --glow2: #e6ecf6;
+    --card-top: #ffffff;
+    --panel: #fbfcfe;
+    --panel2: #eef2f7;
+    --input-bg: #ffffff;
+    --tabs-bg: #eaeff5;
+    --well: #e7ecf2;
+    --well-glow: #dde6f0;
+    --preview-off: #d3dbe5;
+    --chip-bg: #f4f7fb;
+    --chip-hover: #e6eef7;
+    --cell: #dfe6ee;
+    --cell-line: #c4d0dc;
+    --hover: #e4ebf3;
+    --pill: #ffffffcc;
+    --run-bg: #e2f7ea;
+    --run-text: #0d5c33;
+    --line: #d7dee7;
+    --line2: #c2cdd9;
+    --text: #18222f;
+    --muted: #5b6a7b;
+    --accent: #0b74b8;
+    --accent2: #0b74b8;
+    --on: #0f8a4e;
+    color-scheme: light;
+  }
   * { box-sizing: border-box; }
   html, body { min-height: 100%; }
   body {
@@ -28,8 +78,8 @@
     font: 15px/1.45 system-ui, -apple-system, "Segoe UI", sans-serif;
     color: var(--text);
     background:
-      radial-gradient(900px 500px at 15% -10%, #17303f 0%, transparent 60%),
-      radial-gradient(700px 400px at 100% 0%, #1a2436 0%, transparent 55%),
+      radial-gradient(900px 500px at 15% -10%, var(--glow1) 0%, transparent 60%),
+      radial-gradient(700px 400px at 100% 0%, var(--glow2) 0%, transparent 55%),
       var(--bg);
   }
 
@@ -54,12 +104,25 @@
     padding: 5px 10px;
     border: 1px solid var(--line);
     border-radius: 999px;
-    background: #111720cc;
+    background: var(--pill);
     font-size: 12.5px;
   }
   .pill i { color: var(--muted); font-style: normal; }
   .pill b { font-weight: 600; }
   .pill.live b { color: var(--on); }
+  .pill.pending b { color: var(--accent); }
+  .iconbtn {
+    width: 34px; height: 34px; padding: 0;
+    display: inline-grid; place-items: center;
+    font-size: 15px; line-height: 1; border-radius: 10px;
+  }
+  .iconbtn svg {
+    width: 17px; height: 17px;
+    fill: none; stroke: currentColor; stroke-width: 1.7;
+    stroke-linecap: round; stroke-linejoin: round;
+  }
+  :root:not([data-theme="light"]) .sun { display: none; }
+  :root[data-theme="light"] .moon { display: none; }
 
   /* ---------- layout ---------- */
   main {
@@ -71,7 +134,7 @@
   @media (max-width: 860px) { main { grid-template-columns: 1fr; } }
 
   .card {
-    background: linear-gradient(180deg, #171e27, var(--panel));
+    background: linear-gradient(180deg, var(--card-top), var(--panel));
     border: 1px solid var(--line);
     border-radius: var(--radius);
     padding: 12px;
@@ -107,10 +170,10 @@
     cursor: pointer;
     transition: background .12s, border-color .12s, transform .06s;
   }
-  button:hover { background: #232d3a; border-color: #42556a; }
+  button:hover { background: var(--hover); border-color: var(--line2); }
   button:active { transform: translateY(1px); }
   button.primary {
-    background: linear-gradient(180deg, var(--accent2), #1d6b91);
+    background: linear-gradient(180deg, var(--accent2), var(--accent2));
     border-color: #39a3d4; color: #fff;
   }
   button.primary:hover { background: linear-gradient(180deg, #34a3dc, #1f749e); }
@@ -122,7 +185,7 @@
     padding: 7px 9px;
     border-radius: 9px;
     border: 1px solid var(--line2);
-    background: #0f151c;
+    background: var(--input-bg);
     color: var(--text);
     min-width: 0;
   }
@@ -136,13 +199,13 @@
     display: inline-flex; flex-wrap: wrap; gap: 4px;
     padding: 3px; margin: 0 0 10px;
     border: 1px solid var(--line); border-radius: 10px;
-    background: #10161d;
+    background: var(--tabs-bg);
   }
   .tab {
     border: 1px solid transparent; background: transparent;
     border-radius: 7px; padding: 5px 10px; font-size: 12.5px; color: var(--muted);
   }
-  .tab:hover { color: var(--text); background: #1a232d; }
+  .tab:hover { color: var(--text); background: var(--hover); }
   .tab.on { background: var(--panel2); color: var(--text); border-color: var(--line2); }
 
   .chips {
@@ -155,21 +218,27 @@
     padding: 6px 12px;
     border-radius: 999px;
     border: 1px solid var(--line2);
-    background: #1a222c;
+    background: var(--chip-bg);
     color: var(--text);
     font-size: 13px;
   }
-  .chip:hover { background: #223040; border-color: #46617a; }
+  .chip:hover { background: var(--chip-hover); border-color: var(--line2); }
   .chip.running {
     border-color: var(--on);
-    background: #16281f;
-    color: #e8fff2;
+    background: var(--run-bg);
+    color: var(--run-text);
     box-shadow: 0 0 0 1px #43d17f55, 0 0 14px #43d17f22;
   }
   .chip.running::before {
     content: ""; width: 7px; height: 7px; border-radius: 50%;
     background: var(--on); box-shadow: 0 0 8px var(--on);
   }
+  .chip.pending {
+    border-color: var(--accent);
+    color: var(--accent);
+    animation: pulse .9s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
   .btag { font-size: 11px; color: var(--muted); margin-left: 2px; }
 
   .logline {
@@ -188,7 +257,7 @@
     padding: 12px;
     border: 1px solid var(--line);
     border-radius: 10px;
-    background: #0a0e13;
+    background: var(--well);
   }
 
   input[type=range] {
@@ -219,7 +288,7 @@
   .swatch.on { outline: 2px solid var(--accent); outline-offset: 2px; }
   .swatch.erase {
     display: grid; place-items: center;
-    background: #10161d; color: var(--muted); font-size: 13px;
+    background: var(--tabs-bg); color: var(--muted); font-size: 13px;
   }
 
   .canvaswrap {
@@ -228,8 +297,8 @@
     border: 1px solid var(--line);
     border-radius: 10px;
     background:
-      radial-gradient(400px 200px at 50% 0%, #14202b, transparent 70%),
-      #090d11;
+      radial-gradient(400px 200px at 50% 0%, var(--well-glow), transparent 70%),
+      var(--well);
   }
   #draw {
     display: grid;
@@ -240,8 +309,8 @@
   }
   .cell {
     border-radius: 4px;
-    background: #1a222c;
-    box-shadow: inset 0 0 0 1px #2b3744;
+    background: var(--cell);
+    box-shadow: inset 0 0 0 1px var(--cell-line);
     transition: background .08s ease, box-shadow .08s ease;
   }
   .cell.lit { box-shadow: inset 0 0 0 1px #ffffff26; }
@@ -262,7 +331,7 @@
   #edText {
     width: 100%; min-height: 220px; margin-top: 10px;
     font: 12.5px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
-    background: #0b1016;
+    background: var(--input-bg);
     resize: vertical;
   }
 </style>
@@ -273,10 +342,15 @@
   <div class="brand"><span class="dot"></span><h1>xpi</h1></div>
   <div class="pills">
     <span class="pill"><i>host</i><b id="pHost">…</b></span>
+    <span class="pill"><i>ip</i><b id="pIp">…</b></span>
     <span class="pill"><i>board</i><b id="pBoard">…</b></span>
     <span class="pill" id="pRunPill"><i>running</i><b id="pRun">…</b></span>
     <span class="pill"><i>boot</i><b id="pBoot">…</b></span>
   </div>
+  <button id="themeBtn" class="iconbtn" title="Toggle light or dark theme" aria-label="Toggle theme">
+    <svg class="moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M21 12.8A8.6 8.6 0 1 1 11.2 3a6.7 6.7 0 0 0 9.8 9.8z"/></svg>
+    <svg class="sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.1"/><path d="M12 2.2v2.3M12 19.5v2.3M2.2 12h2.3M19.5 12h2.3M5 5l1.6 1.6M17.4 17.4 19 19M19 5l-1.6 1.6M6.6 17.4 5 19"/></svg>
+  </button>
 </header>
 
 <main>
@@ -363,6 +437,7 @@
 <script>
 "use strict";
 var state = null, board = "all", firstRefresh = true, seeded = false;
+var pendingScript = null;
 var boardMap = {"microdot-phat": "microdot-phat",
                 "unicorn phat": "unicorn-phat",
                 "unicorn-hat 16x8": "unicorn-hat",
@@ -394,6 +469,7 @@ async function refresh() {
   try { design = await (await fetch('/action=state')).json() || {}; } catch (e) {}
 
   document.getElementById('pHost').textContent = state.hostname || 'pi';
+  document.getElementById('pIp').textContent = state.ip || 'unknown';
   document.getElementById('pBoard').textContent = state.attached || 'unknown';
   var run = state.running;
   document.getElementById('pRun').textContent = run ? (run + (state.pid ? ' · ' + state.pid : '')) : 'none';
@@ -446,20 +522,22 @@ function renderTabs() {
 }
 
 function renderChips() {
+  if (!state) return;
   var grid = document.getElementById("grid");
   grid.innerHTML = "";
   (state.scripts || []).forEach(function (n) {
     var tag = boardOf((state.boards || {})[n]);
     if (!matches(tag)) return;
     var b = document.createElement("button");
-    b.className = "chip" + (n === state.running ? " running" : "");
+    b.className = "chip" + (n === state.running ? " running" : "")
+      + (n === pendingScript ? " pending" : "");
     b.textContent = n;
     if (tag === "generic" || tag === "both") {
       var sp = document.createElement("span");
       sp.className = "btag"; sp.textContent = "· " + tag;
       b.appendChild(sp);
     }
-    b.onclick = function () { act("switch", "script=" + encodeURIComponent(n)); };
+    b.onclick = function () { act("switch", "script=" + encodeURIComponent(n), n); };
     grid.appendChild(b);
   });
   var log = document.getElementById("log");
@@ -483,6 +561,21 @@ function fillEditorList() {
 }
 
 function pushQS(qs) { history.pushState({}, "", "/?" + qs); }
+
+/* ------------------------------------------------------------- theme --- */
+
+var themeBtn = document.getElementById("themeBtn");
+
+function applyTheme(name) {
+  document.documentElement.dataset.theme = name;
+  themeBtn.title = name === "light" ? "Switch to dark" : "Switch to light";
+  try { localStorage.setItem("xpi-theme", name); } catch (e) {}
+}
+
+applyTheme(document.documentElement.dataset.theme || "dark");
+themeBtn.onclick = function () {
+  applyTheme(document.documentElement.dataset.theme === "light" ? "dark" : "light");
+};
 
 /* ------------------------------------------- drawing: drag to paint --- */
 
@@ -680,7 +773,7 @@ function sendPixels() {
     if (shapeNow.mono) out.push([Number(xy[0]), Number(xy[1])]);
     else out.push([Number(xy[0]), Number(xy[1]), pix[k]]);
   });
-  act('update', 'script=draw&pixels=' + encodeURIComponent(JSON.stringify(out)));
+  act('update', 'script=draw&pixels=' + encodeURIComponent(JSON.stringify(out)), 'draw');
 }
 
 function clearPixels() {
@@ -792,7 +885,7 @@ function makeLedGrid(shape, cells) {
       d.style.height = px + "px";
       d.style.borderRadius = shape.mono ? "1px" : "3px";
       var v = cells[y * shape.c + x];
-      d.style.background = v || "#161d26";
+      d.style.background = v || "var(--preview-off)";
       if (v) d.style.boxShadow = "0 0 8px " + v + "80";
       wrap.appendChild(d);
     }
@@ -908,11 +1001,21 @@ async function deleteScript() {
 
 /* ------------------------------------------------------------- actions --- */
 
-async function act(action, extra) {
+async function act(action, extra, name) {
   var qs = "action=" + action + (extra ? "&" + extra : "");
   pushQS(qs);
-  await fetch('/?' + qs, {headers: {"Accept": "application/json"}});
-  refresh();
+  if (name && state) {
+    pendingScript = name;
+    renderChips();
+    document.getElementById('pRun').textContent = name + ' · starting';
+    document.getElementById('pRunPill').className = 'pill pending';
+  }
+  try {
+    await fetch('/?' + qs, {headers: {"Accept": "application/json"}});
+  } finally {
+    pendingScript = null;
+    refresh();
+  }
 }
 
 function saveBoot() {
@@ -924,9 +1027,9 @@ function send() {
   var t = document.getElementById('msg').value;
   var s = document.getElementById('secs').value;
   if (t) {
-    act('update', 'script=message&message=' + encodeURIComponent(t));
+    act('update', 'script=message&message=' + encodeURIComponent(t), 'message');
   } else if (s) {
-    act('update', 'script=timer&seconds=' + encodeURIComponent(s));
+    act('update', 'script=timer&seconds=' + encodeURIComponent(s), 'timer');
   }
   document.getElementById('msg').value = '';
   document.getElementById('secs').value = '';

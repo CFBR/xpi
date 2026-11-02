@@ -41,7 +41,7 @@ http://<pi-ip>/?action=switch&script=snow     # Run or reset a script
 | `?action=stop` | Kill the current script. Its last frame stays on the board |
 | `?action=clear` | Kill it and blank both boards |
 | `?action=boot&script=clock` | Set the boot script. Omit it or use `none` to unset |
-| `?action=status` | Running, pid, boot, scripts, boards, revision, log |
+| `?action=status` | Running, pid, boot, scripts, boards, ip, revision, log |
 
 Quote the whole URL because `?` and `&` are shell metacharacters. Repeating
 `arg=` passes multiple positional arguments.

@@ -5,11 +5,11 @@
 import argparse
 import collections
 import datetime
-import importlib
 import http.server
 import json
 import os
 import signal
+import socket
 import subprocess
 import sys
 import tempfile
@@ -222,13 +222,27 @@ def log_text(tail=1200):
         return b"".join(_log_chunks).decode("utf-8", "replace")[-tail:]
 
 
+def clear_target():
+    """Which board clear.py should touch, from the cached detection."""
+    kind = detect_device()
+    if kind == "microdot-phat":
+        return "microdot"
+    if kind.startswith("unicorn"):
+        return "unicorn"
+    return None
+
+
 def clear_board():
     result = None
+    target = clear_target()
+    cmd = [sys.executable, os.path.join(SCRIPTS_DIR, "clear.py")]
+    if target:
+        cmd.append(target)
     with _sup_lock:
         stop_child()
         try:
             result = subprocess.run(
-                [sys.executable, os.path.join(SCRIPTS_DIR, "clear.py")],
+                cmd,
                 cwd=SCRIPTS_DIR, env=child_env(), timeout=5,
                 stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
             out = result.stdout
@@ -249,6 +263,32 @@ _attached = ""
 _detect_lock = threading.Lock()
 
 
+def _microdot_present():
+    """Probe the microdot I2C chips directly.
+
+    Importing microdotphat pulls in numpy, which costs about 4 s on a Pi Zero,
+    and its retry loop adds seconds on a bus with no device. Writing one byte
+    to each address answers the same question in milliseconds.
+    """
+    try:
+        from smbus2 import SMBus
+    except ImportError:
+        return False
+    try:
+        bus = SMBus(1)
+    except OSError:
+        return False
+    try:
+        for addr in (0x61, 0x62, 0x63):
+            try:
+                bus.write_byte(addr, 0)
+            except OSError:
+                return False
+        return True
+    finally:
+        bus.close()
+
+
 def detect_device():
     """Once per 30 s: which display is physically attached.
 
@@ -263,17 +303,8 @@ def detect_device():
         if _attached and time.time() - _last_detect < 30:
             return _attached
         kind = "none-probed"
-        try:
-            sys.path.insert(0, os.path.join(ROOT, "repos/microdot-phat/library"))
-            try:
-                importlib.import_module("microdotphat")
-                md = importlib.import_module("microdotphat")
-                if md.is_connected():
-                    kind = "microdot-phat"
-            except (ImportError, AttributeError, OSError, RuntimeError):
-                pass
-        finally:
-            sys.path.pop(0)
+        if _microdot_present():
+            kind = "microdot-phat"
         if kind == "none-probed":
             try:
                 product = open("/proc/device-tree/hat/product", "rb").read()
@@ -290,6 +321,75 @@ def detect_device():
         return kind
 
 
+def _iface_ip(name):
+    """IPv4 address of one interface, via SIOCGIFADDR."""
+    try:
+        import fcntl
+        import struct
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    except OSError:
+        return None
+    try:
+        packed = fcntl.ioctl(sock.fileno(), 0x8915,
+                             struct.pack("256s", name[:15].encode()))
+        return socket.inet_ntoa(packed[20:24])
+    except OSError:
+        return None
+    finally:
+        sock.close()
+
+
+def _default_iface():
+    try:
+        with open("/proc/net/route") as fh:
+            for line in fh.readlines()[1:]:
+                fields = line.split()
+                if len(fields) > 2 and fields[1] == "00000000":
+                    return fields[0]
+    except OSError:
+        pass
+    return None
+
+
+def local_ip():
+    """The LAN address other machines reach this Pi on.
+
+    The usual UDP-connect trick is refused with EPERM on these Pis, so fall
+    back to reading the address off the default-route interface.
+    """
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        sock.connect(("10.255.255.255", 1))   # no packet is sent
+        ip = sock.getsockname()[0]
+        if ip and not ip.startswith("127."):
+            return ip
+    except OSError:
+        pass
+    finally:
+        sock.close()
+
+    candidates = []
+    name = _default_iface()
+    if name:
+        candidates.append(name)
+    try:
+        candidates += [n for _, n in socket.if_nameindex()]
+    except OSError:
+        pass
+    for name in candidates:
+        ip = _iface_ip(name)
+        if ip and not ip.startswith("127."):
+            return ip
+
+    try:
+        ip = socket.gethostbyname(socket.gethostname())
+        if ip and not ip.startswith("127."):
+            return ip
+    except OSError:
+        pass
+    return None
+
+
 def status():
     child = running_child()
     started = None
@@ -299,6 +399,7 @@ def status():
     return {
         "attached": detect_device(),
         "hostname": os.uname().nodename,
+        "ip": local_ip(),
         "running": current_stem(child),
         "pid": child.pid if child else None,
         "started": started,
