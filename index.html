@@ -50,7 +50,7 @@
 
 <script>
 "use strict";
-var state = null, board = "all";
+var state = null, board = "all", firstRefresh = true;
 var boardMap = {"microdot-phat": "microdot-phat",
                 "unicorn phat 8x8": "unicorn-phat",
                 "unicorn-hat 16x8": "unicorn-hat",
@@ -68,8 +68,13 @@ function matches(tag) {
 async function refresh() {
   try { state = await (await fetch('/action=status')).json(); } catch (e) { return; }
   document.getElementById('stat').textContent =
-    '— running: ' + (state.running ? (state.running + ' pid ' + state.pid) : 'none')
+    '— attached: ' + (state.attached || 'unknown')
+    + ' | running: ' + (state.running ? (state.running + ' pid ' + state.pid) : 'none')
     + ' | boot: ' + (state.boot || 'none');
+  var wantTab = state.attached === "microdot-phat" ? "microdot-phat"
+    : (state.attached || "").indexOf("unicorn-hat 16x8") >= 0 ? "unicorn-hat"
+    : (state.attached || "").indexOf("unicorn phat") >= 0 ? "unicorn-phat" : null;
+  if (wantTab && board === "all" && firstRefresh) { board = wantTab; firstRefresh = false; }
   var sel = document.getElementById('boot');
   if (!sel.options.length) {
     var none = document.createElement('option');

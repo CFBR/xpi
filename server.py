@@ -5,6 +5,7 @@
 import argparse
 import collections
 import datetime
+import importlib
 import http.server
 import json
 import os
@@ -243,6 +244,52 @@ def clear_board():
     return result.returncode if result else 0
 
 
+_last_detect = 0.0
+_attached = ""
+_detect_lock = threading.Lock()
+
+
+def detect_device():
+    """Once per 30 s: which display is physically attached.
+
+    - `microdot-phat`: I2C chips 0x61/0x62/0x63 answer (definitive)
+    - `unicorn-hat 16x8`: device-tree HAT EEPROM product string (definitive)
+    - `unicorn phat 8x8 (inferred)`: neither of the above; ws281x strips give
+      no electrical ack, so presence is inferred, not sensed
+    - `none-probed`: neither microdot chips nor any other known sign
+    """
+    global _attached, _last_detect
+    with _detect_lock:
+        if _attached and time.time() - _last_detect < 30:
+            return _attached
+        kind = "none-probed"
+        try:
+            sys.path.insert(0, os.path.join(ROOT, "repos/microdot-phat/library/microdotphat"))
+            try:
+                importlib.import_module("smbus2")
+                matrix = importlib.import_module("matrix")
+                if matrix.is_connected(0x61):
+                    kind = "microdot-phat"
+            except (ImportError, OSError, RuntimeError):
+                pass
+        finally:
+            sys.path.pop(0)
+        if kind == "none-probed":
+            try:
+                product = open("/proc/device-tree/hat/product", "rb").read()
+                product = product.rstrip(b" ").decode("ascii", "ignore").strip()
+                if product.startswith("Unicorn HAT"):
+                    kind = "unicorn-hat 16x8"
+            except OSError:
+                pass
+        if kind == "none-probed":
+            kind = "unicorn phat 8x8 (inferred)"
+        _attached = kind
+        _last_detect = time.time()
+        print("server: attached display detected:", kind)
+        return kind
+
+
 def status():
     child = running_child()
     started = None
@@ -250,6 +297,7 @@ def status():
         started = datetime.datetime.fromtimestamp(
             _child_started, datetime.timezone.utc).isoformat()
     return {
+        "attached": detect_device(),
         "running": current_stem(child),
         "pid": child.pid if child else None,
         "started": started,
