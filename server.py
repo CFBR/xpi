@@ -222,17 +222,25 @@ def log_text(tail=1200):
 
 
 def clear_board():
+    result = None
     with _sup_lock:
         stop_child()
-        result = subprocess.run(
-            [sys.executable, os.path.join(SCRIPTS_DIR, "clear.py")],
-            cwd=SCRIPTS_DIR, env=child_env(), timeout=5,
-            stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        try:
+            result = subprocess.run(
+                [sys.executable, os.path.join(SCRIPTS_DIR, "clear.py")],
+                cwd=SCRIPTS_DIR, env=child_env(), timeout=5,
+                stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+            out = result.stdout
+        except subprocess.TimeoutExpired as exc:
+            # a board probe hanging (e.g. no display of the other kind
+            # attached) must never block switching; wipe what responded
+            out = exc.stdout or b""
+            out += b"\n[clear timed out; wiped what responded]\n"
     with _log_lock:
         _log_chunks.clear()
-        for i in range(0, len(result.stdout), 128):
-            _log_chunks.append(result.stdout[i:i + 128])
-    return result.returncode
+        for i in range(0, len(out), 128):
+            _log_chunks.append(out[i:i + 128])
+    return result.returncode if result else 0
 
 
 def status():
