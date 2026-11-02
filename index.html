@@ -334,6 +334,24 @@ try {
     background: var(--input-bg);
     resize: vertical;
   }
+
+  /* ---------- drag and drop ---------- */
+  .dropzone {
+    position: fixed; inset: 0; z-index: 50;
+    display: none; place-items: center;
+    background: #0008;
+    pointer-events: none;
+  }
+  .dropzone.on { display: grid; }
+  .dropzone div {
+    padding: 30px 44px;
+    border: 2px dashed var(--accent);
+    border-radius: 16px;
+    background: var(--panel);
+    color: var(--text);
+    font-size: 16px;
+    box-shadow: 0 20px 60px #0008;
+  }
 </style>
 </head>
 <body>
@@ -431,8 +449,11 @@ try {
       <input type="file" id="edFile" accept=".py,text/python" onchange="fileChosen(this)">
     </label>
   </div>
+  <p class="hint" style="margin:0 0 4px">Drop a .py file anywhere on the page to add it.</p>
   <textarea id="edText" spellcheck="false" placeholder="edit or paste python here"></textarea>
 </details>
+
+<div id="dropzone" class="dropzone"><div>Drop a .py file to add it</div></div>
 
 <script>
 "use strict";
@@ -984,6 +1005,61 @@ function fileChosen(input) {
     document.getElementById("edText").value = reader.result;
   };
   reader.readAsText(file);
+}
+
+/* ------------------------------------------- drag and drop a script file --- */
+
+var dropzone = document.getElementById("dropzone");
+var dragDepth = 0;
+
+function draggingFiles(e) {
+  var types = e.dataTransfer && e.dataTransfer.types;
+  return types ? Array.prototype.indexOf.call(types, "Files") >= 0 : false;
+}
+
+window.addEventListener("dragenter", function (e) {
+  if (!draggingFiles(e)) return;
+  e.preventDefault();
+  dragDepth++;
+  dropzone.classList.add("on");
+});
+
+window.addEventListener("dragover", function (e) {
+  if (!draggingFiles(e)) return;
+  e.preventDefault();
+});
+
+window.addEventListener("dragleave", function () {
+  dragDepth = Math.max(0, dragDepth - 1);
+  if (!dragDepth) dropzone.classList.remove("on");
+});
+
+window.addEventListener("drop", async function (e) {
+  if (!draggingFiles(e)) return;
+  e.preventDefault();
+  dragDepth = 0;
+  dropzone.classList.remove("on");
+  var files = Array.prototype.slice.call(e.dataTransfer.files)
+    .filter(function (f) { return /\.py$/i.test(f.name); });
+  if (!files.length) return alert("drop a .py file");
+  for (var i = 0; i < files.length; i++) await uploadScript(files[i]);
+});
+
+async function uploadScript(file) {
+  var text = await file.text();
+  var stem = file.name.replace(/\.py$/i, "").replace(/[^A-Za-z0-9_-]+/g, "_");
+  var resp = await fetch("action=savescript&script=" + encodeURIComponent(stem),
+                         {method: "POST",
+                          headers: {"Content-Type": "text/plain; charset=utf-8",
+                                    "Accept": "application/json"},
+                          body: text});
+  var data = await resp.json();
+  if (!data.ok) return alert("save failed: " + (data.error || resp.status));
+  await refresh();
+  document.querySelector("details.editor").open = true;
+  document.getElementById("edName").value = data.script.replace(/\.py$/, "");
+  document.getElementById("edText").value = text;
+  document.getElementById("edList").value = data.script.replace(/\.py$/, "");
 }
 
 async function saveScript() {

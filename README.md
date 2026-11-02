@@ -94,14 +94,13 @@ under `microdot-phat/` and `unicorn-hat/`. That is 12 microdot-phat examples
 and 28 Unicorn HAT/pHAT examples. `scripts/README.md` lists them and their
 optional dependencies.
 
-To add your own, drop `myscript.py` into `/opt/xpi/scripts/` and it appears on
-the next page load. A leading `_` keeps a file out of the list. The page's
-editor does the same over HTTP.
+To add a script, drag a `.py` file onto the page. It saves to
+`/opt/xpi/scripts/` and appears in the list.
 
 ## Credits
 
 The display libraries in `vendor/` and the examples in `scripts/` come from
 Pimoroni Ltd under the MIT license:
-[microdot-phat](https://github.com/CFBR/microdot-phat) and
-[unicorn-hat](https://github.com/CFBR/unicorn-hat). The license texts are in
+[microdot-phat](https://github.com/pimoroni/microdot-phat) and
+[unicorn-hat](https://github.com/pimoroni/unicorn-hat). The license texts are in
 `LICENSES/`. xpi itself is MIT, see `LICENSE`.

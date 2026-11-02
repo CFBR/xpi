@@ -1,4 +1,4 @@
-# Source: https://github.com/CFBR/unicorn-hat/blob/master/examples/hat/graphics.py
+# Source: https://github.com/pimoroni/unicorn-hat/blob/master/examples/hat/graphics.py
 # Original: Pimoroni Ltd, MIT License. See LICENSES/pimoroni-unicorn-hat.txt
 '''
 This file is used in UnicornHat examples

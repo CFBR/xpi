@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Source: https://github.com/CFBR/unicorn-hat/blob/master/examples/test_rotation.py
+# Source: https://github.com/pimoroni/unicorn-hat/blob/master/examples/test_rotation.py
 # Original: Pimoroni Ltd, MIT License. See LICENSES/pimoroni-unicorn-hat.txt
 
 import unicornhat as unicorn

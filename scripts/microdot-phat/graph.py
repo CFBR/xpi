@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-# Source: https://github.com/CFBR/microdot-phat/blob/master/examples/graph.py
+# Source: https://github.com/pimoroni/microdot-phat/blob/master/examples/graph.py
 # Original: Pimoroni Ltd, MIT License. See LICENSES/pimoroni-microdot-phat.txt
 
 from time import sleep

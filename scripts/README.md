@@ -43,7 +43,7 @@ Optional dependencies:
 Both exit with a message when the module is missing. `weather-icons.py` needs
 the `weather-icons/` folder beside it, which it has.
 
-Source: [CFBR/microdot-phat](https://github.com/CFBR/microdot-phat) and
-[CFBR/unicorn-hat](https://github.com/CFBR/unicorn-hat), forks of Pimoroni's
-repos. Copyright (c) 2017 Pimoroni Ltd, MIT License. The full texts are in
+Source: [pimoroni/microdot-phat](https://github.com/pimoroni/microdot-phat)
+and [pimoroni/unicorn-hat](https://github.com/pimoroni/unicorn-hat).
+Copyright (c) 2017 Pimoroni Ltd, MIT License. The full texts are in
 `LICENSES/`.
