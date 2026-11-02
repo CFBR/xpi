@@ -298,6 +298,7 @@ def status():
             _child_started, datetime.timezone.utc).isoformat()
     return {
         "attached": detect_device(),
+        "hostname": os.uname().nodename,
         "running": current_stem(child),
         "pid": child.pid if child else None,
         "started": started,
@@ -387,6 +388,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 self.act_boot(params)
             elif action in ("status", "scripts"):
                 self.respond(200, status(), "json")
+            elif action == "state":
+                self.respond(200, _read_state(), "json")
             else:
                 self.respond(404, {"error": "unknown action", "action": action})
         except (BrokenPipeError, ConnectionResetError):

@@ -48,6 +48,23 @@
 <div id="grid"></div>
 <pre id="log" class="info"></pre>
 
+<fieldset style="margin:.4rem 0">
+  <legend>Preview (board apprx.)</legend>
+  <div id="preview" style="display:flex;gap:1px"></div>
+  <div class="info" id="previewNote"></div>
+</fieldset>
+
+<fieldset style="margin:.4rem 0">
+  <legend>Draw on board</legend>
+  <div class="row">
+    <span id="palette"></span>
+    <button onclick="sendPixels()">Send drawing</button>
+    <button onclick="clearPixels()">Blank</button>
+  </div>
+  <div id="draw" style="display:flex;gap:1px;overflow-x:auto;max-width:96vw"></div>
+  <div class="info">click cells to set, click again to erase; sending makes <code>draw</code> the running script</div>
+</fieldset>
+
 <script>
 "use strict";
 var state = null, board = "all", firstRefresh = true;
@@ -67,6 +84,8 @@ function matches(tag) {
 
 async function refresh() {
   try { state = await (await fetch('/action=status')).json(); } catch (e) { return; }
+  var design = {};
+  try { design = await (await fetch('/action=state')).json() || {}; } catch (e) {}
   document.getElementById('stat').textContent =
     '— attached: ' + (state.attached || 'unknown')
     + ' | running: ' + (state.running ? (state.running + ' pid ' + state.pid) : 'none')
@@ -101,6 +120,8 @@ async function refresh() {
     nav.appendChild(b);
   });
   renderJ();
+  renderPreview(design);
+  rebuildDrawGrid(shapeOf(state.attached));
 }
 
 function renderJ() {
@@ -128,6 +149,213 @@ function renderJ() {
 }
 
 function pushQS(qs) { history.pushState({}, "", "/?" + qs); }
+
+/* ---------- drawing panel: canvas of LEDs and palette ---------- */
+
+var drawing = [];          // [{x,y,color}]
+var drawColor = "#ffffff";
+var PALETTE = ["#ffffff", "#ff0000", "#00ff00", "#0000ff",
+               "#ffff00", "#00ffff", "#ff00ff", "#804000"];
+
+function rebuildDrawGrid(shape) {
+  if (shape.mono) PALETTE = ["#e6e6e6"]; else { PALETTE = ["#ffffff", "#ff0000",
+    "#00ff00", "#0000ff", "#ffff00", "#00ffff", "#ff00ff", "#804000"]; }
+  document.getElementById("palette").innerHTML = "";
+  PALETTE.forEach(function (hex) {
+    var btn = document.createElement("button");
+    btn.style.background = hex;
+    btn.style.border = "1px solid #888c";
+    btn.style.width = "22px";
+    btn.style.height = "22px";
+    if (hex === drawColor) btn.style.outline = "2px solid #0af";
+    btn.onclick = function () { drawColor = hex; };
+    document.getElementById("palette").appendChild(btn);
+  });
+  var box = document.getElementById("draw");
+  box.innerHTML = "";
+  for (var y = 0; y < shape.r; y++) {
+    for (var x = 0; x < shape.c; x++) {
+      (function (x, y) {
+        var cell = document.createElement("div");
+        cell.style.width = "9px"; cell.style.height = "9px";
+        cell.style.background = colorAt(x, y) || "rgba(120,120,120,.25)";
+        cell.style.border = "1px solid rgba(150,150,150,.4)";
+        cell.onclick = function () {
+          setCell(x, y, colorAt(x, y) ? null : drawColor);
+          rebuildDrawGrid(shapeOf(state.attached));
+        };
+        box.appendChild(cell);
+      })(x, y);
+    }
+  }
+}
+
+function colorAt(x, y) {
+  var found = drawing.filter(function (p) { return p.x === x && p.y === y; });
+  return found.length ? found[0].color : null;
+}
+
+function setCell(x, y, color) {
+  drawing = drawing.filter(function (p) { return !(p.x === x && p.y === y); });
+  if (color) drawing.push({ x: x, y: y, color: color });
+}
+
+function sendPixels() {
+  var shape = shapeOf(state.attached);
+  var payload;
+  if (shape.mono) {
+    payload = drawing.map(function (p) { return [p.x, p.y]; });
+  } else {
+    payload = drawing.map(function (p) { return [p.x, p.y, p.color]; });
+  }
+  act('update', 'script=draw&pixels=' + encodeURIComponent(JSON.stringify(payload)));
+}
+
+function clearPixels() {
+  drawing = [];
+  sendPixels();
+}
+
+
+/* ---------- what the board is showing (approximate preview) ---------- */
+
+function shapeOf(attached) {
+  var a = attached || "";
+  if (a === "microdot-phat") return { c: 45, r: 7, mono: true };
+  if (a.indexOf("unicorn-hat 16x8") >= 0) return { c: 16, r: 8, mono: false };
+  if (a.indexOf("unicorn phat") >= 0) return { c: 8, r: 8, mono: false };
+  return { c: 8, r: 8, mono: false };
+}
+
+/* tiny 3x5 font for the preview only (message/hostname/timer scroll) */
+var P3X5 = function(ch) {
+  var glyph = FONT_MINI[ch];
+  if (!glyph) return FONT_MINI["?"];
+  return glyph;
+};
+var FONT_MINI = {
+  "A": ["010","101","111","101","101"],
+  "B": ["110","101","110","101","110"],
+  "C": ["011","100","100","100","011"],
+  "D": ["110","101","101","101","110"],
+  "E": ["111","100","110","100","111"],
+  "F": ["111","100","110","100","100"],
+  "G": ["011","100","101","101","011"],
+  "H": ["101","101","111","101","101"],
+  "I": ["111","010","010","010","111"],
+  "K": ["101","110","101","101","101"],
+  "L": ["100","100","100","100","111"],
+  "M": ["101","111","111","101","101"],
+  "N": ["101","111","111","111","101"],
+  "J": ["001","001","001","101","010"],
+  "X": ["101","101","010","101","101"],
+  "Z": ["111","001","010","100","111"],
+  "O": ["010","101","101","101","010"],
+  "P": ["110","101","110","100","100"],
+  "R": ["110","101","110","101","101"],
+  "S": ["011","100","010","001","110"],
+  "T": ["111","010","010","010","010"],
+  "U": ["101","101","101","101","011"],
+  "V": ["101","101","101","010","010"],
+  "W": ["101","101","111","111","101"],
+  "Y": ["101","101","010","010","010"],
+  "0": ["010","101","101","101","010"],
+  "1": ["010","110","010","010","111"],
+  "2": ["110","001","010","100","111"],
+  "3": ["110","001","110","001","110"],
+  "4": ["101","101","111","001","001"],
+  "5": ["111","100","110","001","110"],
+  "6": ["011","100","110","101","010"],
+  "7": ["111","001","010","010","010"],
+  "8": ["010","101","010","101","010"],
+  "9": ["010","101","011","001","110"],
+  "0": ["010","101","101","101","010"],
+  " ": ["000","000","000","000","000"],
+  ":": ["000","010","000","010","000"],
+  "-": ["000","000","111","000","000"],
+  ".": ["000","000","000","000","010"],
+  "?": ["110","001","010","000","010"]
+};
+
+function textGrid(text) {
+  var w = text.length * 4;
+  var rows = [0, 0, 0, 0].map(function () { return []; });
+  rows = [];
+  for (var y = 0; y < 5; y++) rows.push([]);
+  for (var i = 0; i < text.length; i++) {
+    var g = P3X5(text[i]);
+    for (var yy = 0; yy < 5; yy++) {
+      for (var xx = 0; xx < 3; xx++) {
+        rows[yy].push(Number(g[yy][xx]));
+      }
+      rows[yy].push(0); /* letter gap */
+    }
+  }
+  return rows; /* rows[0..4], columns = text.length*4 */
+}
+
+function makeLedGrid(shape, cells) {
+  var wrap = document.createElement("div");
+  wrap.style.display = "grid";
+  wrap.style.gridTemplateColumns = "repeat(" + shape.c + ", " + (shape.mono ? "3px" : "6px") + ")";
+  wrap.style.gap = "1px";
+  for (var y = 0; y < shape.r; y++) {
+    for (var x = 0; x < shape.c; x++) {
+      var d = document.createElement("div");
+      d.style.width = shape.mono ? "3px" : "6px";
+      d.style.height = d.style.width;
+      d.style.background = cells[y * shape.c + x] || "rgba(120,120,120,.35)";
+      wrap.appendChild(d);
+    }
+  }
+  return wrap;
+}
+
+function renderPreview(designState) {
+  if (!state) return;
+  var box = document.getElementById("preview");
+  box.innerHTML = "";
+  var shape = shapeOf(state.attached);
+  var note = document.getElementById("previewNote");
+  var cells = [];
+  var fillTextPreview = function (text) {
+    var rows = textGrid(text);
+    var off = Math.floor((Date.now() / 120) % rows[0].length);
+    for (var y = 0; y < Math.min(5, shape.r); y++) {
+      for (var x = 0; x < shape.c; x++) {
+        cells[y * shape.c + x] = rows[y][(x + off) % rows[0].length] ? "#e6e6e6" : null;
+      }
+    }
+  };
+  var runningScript = state.running || "";
+  if (runningScript === "draw" && designState && designState.pixels != null) {
+    var pxs = [];
+    try { pxs = JSON.parse(designState.pixels); } catch (e) {}
+    pxs.forEach(function (p) {
+      if (Array.isArray(p) && p.length >= 2 && typeof p[0] === "number")
+        cells[p[1] * shape.c + p[0]] = (p[2] || (shape.mono ? "#e6e6e6" : "#fff"));
+    });
+    note.textContent = "exact pixels on the board";
+  } else if (runningScript === "message" || runningScript === "unicorn_message") {
+    fillTextPreview(String(designState.message || "hi").toUpperCase());
+    note.textContent = "scrolling script content";
+  } else if (runningScript === "timer") {
+    var left = Math.max(0, (designState.seconds || 60) - 1);
+    var mm = Math.floor(left / 60), ss = left % 60;
+    var text = mm + ":" + (ss < 10 ? "0" : "") + ss;
+    fillTextPreview(text);
+    note.textContent = "countdown (approx)";
+  } else if (runningScript === "hostname") {
+    fillTextPreview(String(designState.hostname || "pi").toUpperCase());
+    note.textContent = "scrolling hostname";
+  } else if (runningScript) {
+    note.textContent = "repo script '" + runningScript + "' writes to hardware directly (no preview)";
+  } else {
+    note.textContent = "nothing running";
+  }
+  box.appendChild(makeLedGrid(shape, cells));
+}
+
 
 async function act(action, extra) {
   var qs = "action=" + action + (extra ? "&" + extra : "");
