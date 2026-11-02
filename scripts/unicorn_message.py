@@ -2,14 +2,14 @@
 #
 # Text comes from state.json "message" (live), falling back to sys.argv[1],
 # then "hi". Uses a tiny built-in 3x5 bitmap font (printable ASCII subset),
-# so no pyfiglet/figlet dependency. Polls xpi_state.revision() each scroll
+# so no pyfiglet/figlet dependency. Polls _xpi_state.revision() each scroll
 # frame so an /action=update&message=... call changes text without a restart.
 
 import sys
 import time
 
 import unicornhat
-import xpi_state
+import _xpi_state
 
 BRIGHTNESS = 0.5
 CHAR_W = 4          # 3 px glyph + 1 px gap
@@ -44,7 +44,7 @@ FONT = {
 
 
 def get_message():
-    text = xpi_state.value("message")
+    text = _xpi_state.value("message")
     if text is None and len(sys.argv) > 1:
         text = sys.argv[1]
     return str(text if text is not None else "hi").upper()
@@ -82,11 +82,11 @@ unicornhat.brightness(BRIGHTNESS)
 text = get_message()
 grid = text_bitmap(text)
 offset = 0
-last_revision = xpi_state.revision()
+last_revision = _xpi_state.revision()
 print("unicorn_message.py: displaying", text, "shape", shape)
 
 while True:
-    new_revision = xpi_state.revision()
+    new_revision = _xpi_state.revision()
     if new_revision != last_revision:
         last_revision = new_revision
         new_text = get_message()

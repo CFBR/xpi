@@ -143,7 +143,7 @@ def start_child(stem, args=()):
         with _log_lock:
             _log_chunks.clear()
         _child = subprocess.Popen(
-            [sys.executable, path, *args],
+            [sys.executable, "-u", path, *args],
             cwd=os.path.dirname(path), env=child_env(),
             stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         _child_args = list(args)
@@ -220,14 +220,13 @@ def status():
 def current_stem(child):
     if child is None:
         return None
-    # the child was started with [python, path, ...]
+    # the child argv is [python, -u, script_path, ...] — match any element
     try:
-        argv = child.args
-        path = argv[1] if argv else ""
-        for stem, spath in SCRIPT_REGISTRY.items():
-            if os.path.abspath(spath) == os.path.abspath(path):
-                return stem
-        return os.path.basename(path)
+        for arg in child.args[1:]:
+            for stem, spath in SCRIPT_REGISTRY.items():
+                if os.path.abspath(spath) == os.path.abspath(arg):
+                    return stem
+        return os.path.basename(child.args[-1])
     except Exception:
         return None
 
@@ -267,6 +266,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
         try:
             params = self.parse_query(parse)
             action = (params.pop("action", [None])[0] or "").strip()
+            SCRIPT_REGISTRY.clear()
+            SCRIPT_REGISTRY.update(scan_scripts())
             if not action:
                 if path in ("/", "/index.html"):
                     self.serve_index()
@@ -285,8 +286,6 @@ class Handler(http.server.BaseHTTPRequestHandler):
             elif action == "boot":
                 self.act_boot(params)
             elif action in ("status", "scripts"):
-                SCRIPT_REGISTRY.clear()
-                SCRIPT_REGISTRY.update(scan_scripts())
                 self.respond(200, status(), "json")
             else:
                 self.respond(404, {"error": "unknown action", "action": action})
@@ -316,8 +315,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         revision = bump_state(patch)
         if script:
             start_child(script, args=args)
-        self.respond(200, {"ok": True, "revision": revision,
-                           "running": self.running_name()})
+        self.respond(200, {"ok": True, "revision": revision})
 
     def act_switch(self, params):
         script = params.pop("script", [None])[0]
@@ -330,13 +328,6 @@ class Handler(http.server.BaseHTTPRequestHandler):
             return
         start_child(script, args=args)
         self.respond(200, {"ok": True, "running": script})
-
-    def running_name(self):
-        child = running_child()
-        if child is None:
-            return None
-        argv = getattr(child, "args", [])
-        return os.path.basename(argv[1]) if len(argv) > 1 else None
 
     def act_stop(self):
         stop_child()
@@ -368,7 +359,10 @@ class Handler(http.server.BaseHTTPRequestHandler):
     # --------------------------------------------------------------- out --
     def respond(self, code, payload, kind="json"):
         ctype = {"json": "application/json", "html": "text/html"}.get(
-            kind, "application/json")
+            kind)
+        if ctype is None:
+            ctype = kind if kind in ("text/html", "text/plain") \
+                else "application/json"
         if kind == "json":
             body = json.dumps(payload).encode()
         else:

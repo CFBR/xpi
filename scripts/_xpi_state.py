@@ -1,6 +1,6 @@
-# xpi_state.py — tiny helper shared by shipped display scripts.
+# _xpi_state.py — tiny helper shared by shipped display scripts.
 #
-# Server puts scripts/ on the child's PYTHONPATH, so `import xpi_state` works.
+# Server puts scripts/ on the child's PYTHONPATH, so `import _xpi_state` works.
 # Reads ROOT/state.json; missing or invalid file -> {}.
 
 import json
