@@ -39,7 +39,6 @@ def run_unicorn(pixels):
     while True:
         if _xpi_state.revision() != current:
             current = _xpi_state.revision()
-            unicornhat.brightness(_display.brightness_value())
             pixels = get_pixels()
             print("draw.py: new design,", len(pixels), "pixels")
             render(pixels, shape, unicornhat.show)

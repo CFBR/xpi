@@ -99,7 +99,7 @@ def setup_unicorn(layout=None):
     unicornhat.get_shape()                     # runs setup() once -> HAT
     unicornhat.set_layout(layout or unicornhat.AUTO)
     unicornhat.rotation(0)
-    unicornhat.brightness(brightness_value())
+    unicornhat.brightness(1.0)
     return unicornhat.get_shape(), unicornhat
 
 

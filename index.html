@@ -431,9 +431,15 @@ try {
 
     <div class="row" style="margin-top:10px">
       <label class="field" for="bright">brightness</label>
-      <input id="bright" type="range" min="0" max="100" step="1" value="50">
-      <span class="hint" id="brightVal">50%</span>
-      <span class="hint" id="brightNote"></span>
+      <input id="bright" type="range" min="0" max="100" step="1" value="100">
+      <span class="hint" id="brightVal">100%</span>
+      <span class="hint">scales the running script</span>
+    </div>
+    <div class="row">
+      <label class="field" for="speed">speed</label>
+      <input id="speed" type="range" min="25" max="400" step="5" value="100">
+      <span class="hint" id="speedVal">1.00x</span>
+      <span class="hint">any script, including the examples</span>
     </div>
 
     <div class="divider"></div>
@@ -552,6 +558,7 @@ async function refresh() {
   seedDrawing(design);
   renderPreview(design);
   syncBrightness(design);
+  syncSpeed(design);
   fillEditorList();
 
   if (!seeded) seeded = true;
@@ -893,17 +900,36 @@ var brightInput = document.getElementById("bright");
 var brightDragging = false;
 
 function syncBrightness(design) {
-  var mono = shapeOf(state && state.attached).mono;
-  brightInput.disabled = mono;
-  document.getElementById("brightNote").textContent =
-    mono ? "no brightness control on microdot-phat" : "";
   if (brightDragging) return;
-  var v = design && design.brightness != null ? Number(design.brightness) : 0.5;
-  if (!isFinite(v)) v = 0.5;
+  var v = design && design.brightness != null ? Number(design.brightness) : 1;
+  if (!isFinite(v)) v = 1;
   v = Math.max(0, Math.min(1, v));
   brightInput.value = Math.round(v * 100);
   document.getElementById("brightVal").textContent = brightInput.value + "%";
 }
+
+var speedInput = document.getElementById("speed");
+var speedDragging = false;
+
+function syncSpeed(design) {
+  if (speedDragging) return;
+  var v = design && design.speed != null ? Number(design.speed) : 1;
+  if (!isFinite(v)) v = 1;
+  v = Math.max(0.25, Math.min(4, v));
+  speedInput.value = Math.round(v * 100);
+  document.getElementById("speedVal").textContent = v.toFixed(2) + "x";
+}
+
+speedInput.addEventListener("input", function () {
+  speedDragging = true;
+  document.getElementById("speedVal").textContent =
+    (speedInput.value / 100).toFixed(2) + "x";
+});
+
+speedInput.addEventListener("change", function () {
+  speedDragging = false;
+  act('update', 'speed=' + (speedInput.value / 100).toFixed(2));
+});
 
 brightInput.addEventListener("input", function () {
   brightDragging = true;

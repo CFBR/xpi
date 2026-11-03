@@ -22,6 +22,50 @@ from .matrix import NanoMatrix
 
 __version__ = '0.2.2'
 
+
+# --- xpi: scale brightness by state.json -----------------------------------
+import json as _json
+import os as _os
+
+
+def _xpi_root(path):
+    directory = _os.path.dirname(_os.path.abspath(path))
+    while directory != "/":
+        if _os.path.exists(_os.path.join(directory, "server.py")):
+            return directory
+        directory = _os.path.dirname(directory)
+    return _os.path.dirname(_os.path.dirname(_os.path.abspath(path)))
+
+_STATE_FILE = _os.path.join(_xpi_root(__file__), "state.json")
+
+_applied_scale = None
+_scale_cache = 1.0
+_scale_mtime = None
+
+
+def _state_scale():
+    global _scale_cache, _scale_mtime
+    try:
+        mtime = _os.path.getmtime(_STATE_FILE)
+    except OSError:
+        return 1.0
+    if mtime != _scale_mtime:
+        try:
+            with open(_STATE_FILE) as fh:
+                value = float(_json.load(fh).get("brightness", 1.0))
+        except (OSError, ValueError, TypeError):
+            value = 1.0
+        _scale_mtime = mtime
+        _scale_cache = max(0.0, min(1.0, value))
+    return _scale_cache
+
+
+def _apply_scale():
+    global _applied_scale
+    _applied_scale = _state_scale()
+    for m_x in range(6):
+        _mat[m_x][0].set_brightness(_applied_scale)
+
 WIDTH = 45
 HEIGHT = 7
 
@@ -343,6 +387,8 @@ def show():
     """
 
     setup()
+    if _state_scale() != _applied_scale:
+        _apply_scale()
 
     scrolled_buffer = numpy.copy(_buf)
     scrolled_buffer = numpy.roll(scrolled_buffer, -_scroll_x, axis=1)

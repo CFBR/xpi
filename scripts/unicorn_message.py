@@ -36,7 +36,6 @@ print("unicorn_message.py: displaying", text, "color", color, "shape", shape)
 while True:
     if _xpi_state.revision() != last_revision:
         last_revision = _xpi_state.revision()
-        unicornhat.brightness(_display.brightness_value())
         new_color = _display.parse_color(_xpi_state.value("color"), DEFAULT_COLOR)
         if new_color != color:
             color = new_color

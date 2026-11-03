@@ -9,6 +9,51 @@ LED_COUNT      = 64      # Number of LED pixels.
 LED_PIN        = 18      # GPIO pin connected to the pixels (must support PWM!).
 LED_FREQ_HZ    = 800000  # LED signal frequency in hertz (usually 800khz)
 LED_DMA        = 10      # DMA channel to use for generating signal
+
+# --- xpi: scale brightness by state.json -----------------------------------
+import json as _json
+import os as _os
+
+
+def _xpi_root(path):
+    directory = _os.path.dirname(_os.path.abspath(path))
+    while directory != "/":
+        if _os.path.exists(_os.path.join(directory, "server.py")):
+            return directory
+        directory = _os.path.dirname(directory)
+    return _os.path.dirname(_os.path.dirname(_os.path.abspath(path)))
+
+_STATE_FILE = _os.path.join(_xpi_root(__file__), "state.json")
+
+_base_brightness = 1.0
+_applied_scale = None
+_scale_cache = 1.0
+_scale_mtime = None
+
+
+def _state_scale():
+    global _scale_cache, _scale_mtime
+    try:
+        mtime = _os.path.getmtime(_STATE_FILE)
+    except OSError:
+        return 1.0
+    if mtime != _scale_mtime:
+        try:
+            with open(_STATE_FILE) as fh:
+                value = float(_json.load(fh).get("brightness", 1.0))
+        except (OSError, ValueError, TypeError):
+            value = 1.0
+        _scale_mtime = mtime
+        _scale_cache = max(0.0, min(1.0, value))
+    return _scale_cache
+
+
+def _apply_brightness():
+    global _applied_scale
+    _applied_scale = _state_scale()
+    level = int(_base_brightness * _applied_scale * 128.0)
+    ws2812.setBrightness(max(0, min(128, level)))
+
 LED_BRIGHTNESS = 128     # Set to 0 for darkest and 255 for brightest
 LED_CHANNEL    = 0       # PWM channel
 LED_INVERT     = False   # True to invert the signal (when using NPN transistor level shift)
@@ -231,12 +276,9 @@ def brightness(b=0.2):
     this unless you know what you're doing.
     UnicornHAT draws too much current above 50%."""
 
-    brightness = int(b*128.0)
-
-    if brightness < 30:
-        print("Warning: Low brightness chosen, your UnicornHAT might not light up!")
-
-    ws2812.setBrightness(brightness)
+    global _base_brightness
+    _base_brightness = b
+    _apply_brightness()
 
 
 def get_brightness():
@@ -403,5 +445,7 @@ def show():
     """Update UnicornHat with the contents of the display buffer"""
 
     setup()
+    if _state_scale() != _applied_scale:
+        _apply_brightness()
     ws2812.show()
 

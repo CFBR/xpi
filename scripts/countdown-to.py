@@ -78,7 +78,6 @@ def run_unicorn():
         new_revision = _xpi_state.revision()
         if new_revision != last_revision:
             last_revision = new_revision
-            unicornhat.brightness(_display.brightness_value())
             color = _display.parse_color(_xpi_state.value("color"), DEFAULT_COLOR)
         _display.draw_unicorn(grid, offset, shape, color)
         offset += 1

@@ -58,7 +58,6 @@ def run_unicorn():
         if value != last or new_revision != last_revision:
             last = value
             last_revision = new_revision
-            unicornhat.brightness(_display.brightness_value())
             color = _display.parse_color(_xpi_state.value("color"), DEFAULT_COLOR)
             filled = int(round(width * value / 100.0))
             unicornhat.clear()

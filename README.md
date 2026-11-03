@@ -66,15 +66,16 @@ and an editor that loads, saves, uploads and deletes files in `scripts/`.
 ## state.json
 
 ```json
-{"message": "...", "seconds": 15, "brightness": 0.4, "revision": 17}
+{"message": "...", "seconds": 15, "brightness": 0.5, "speed": 1.0, "revision": 17}
 ```
 
 `/action=update` increments `revision`. Scripts that poll `revision()` from
 `scripts/_xpi_state.py` read new `message`, `seconds`, `brightness` and `color`
 values without a restart.
 
-Brightness works on the Unicorn boards. The microdot-phat is monochrome, so the
-slider stays disabled when it is attached.
+`brightness` scales whatever the running script sets, on either board. `speed`
+scales `time.sleep` for any script, including the Pimoroni examples: `2.0` runs
+at double speed, `0.5` at half. Both apply without a restart.
 
 ## Boards
 
