@@ -468,6 +468,12 @@ try {
       <span class="hint" id="speedVal">1.00x</span>
       <span class="hint">any script, including the examples</span>
     </div>
+    <div class="row">
+      <label class="field" for="density">density</label>
+      <input id="density" type="range" min="10" max="300" step="10" value="100">
+      <span class="hint" id="densityVal">1.00x</span>
+      <span class="hint">raindrop and rainfall</span>
+    </div>
 
     <div class="divider"></div>
 
@@ -586,6 +592,7 @@ async function refresh() {
   renderPreview(design);
   syncBrightness(design);
   syncSpeed(design);
+  syncDensity(design);
   fillEditorList();
 
   if (!seeded) seeded = true;
@@ -956,6 +963,29 @@ speedInput.addEventListener("input", function () {
 speedInput.addEventListener("change", function () {
   speedDragging = false;
   act('update', 'speed=' + (speedInput.value / 100).toFixed(2));
+});
+
+var densityInput = document.getElementById("density");
+var densityDragging = false;
+
+function syncDensity(design) {
+  if (densityDragging) return;
+  var v = design && design.density != null ? Number(design.density) : 1;
+  if (!isFinite(v)) v = 1;
+  v = Math.max(0.1, Math.min(3, v));
+  densityInput.value = Math.round(v * 100);
+  document.getElementById("densityVal").textContent = v.toFixed(2) + "x";
+}
+
+densityInput.addEventListener("input", function () {
+  densityDragging = true;
+  document.getElementById("densityVal").textContent =
+    (densityInput.value / 100).toFixed(2) + "x";
+});
+
+densityInput.addEventListener("change", function () {
+  densityDragging = false;
+  act('update', 'density=' + (densityInput.value / 100).toFixed(2));
 });
 
 brightInput.addEventListener("input", function () {

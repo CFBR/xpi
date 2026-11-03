@@ -19,8 +19,16 @@ FRAME = 0.08
 DEFAULT_COLOR = (0, 120, 255)
 
 
+def density():
+    try:
+        return max(0.1, min(5.0, float(_xpi_state.value("density") or 1.0)))
+    except (TypeError, ValueError):
+        return 1.0
+
+
 def spawn(drops, width, height):
-    for _ in range(SPAWN):
+    count = max(1, int(round(SPAWN * density())))
+    for _ in range(count):
         drops.append([random.randrange(width), random.randrange(height), 1.0])
     return drops
 
