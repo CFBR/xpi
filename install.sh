@@ -14,10 +14,11 @@ cp -r "$SRC/vendor" "$SRC/LICENSES" "$SRC/docs" "$DEST/"
 if [ -f "$SRC/README.md" ]; then cp "$SRC/README.md" "$DEST/"; fi
 
 # display library dependencies (already present on most Pi images)
-apt -y install python3-rpi.gpio python3-smbus python3-dev >/dev/null 2>&1 || \
-  apt-get -y install python3-rpi.gpio python3-smbus python3-dev >/dev/null 2>&1 || true
-apt -y install python3-smbus2 >/dev/null 2>&1 || pip3 install smbus2 >/dev/null 2>&1 || true
-pip3 install rpi_ws281x >/dev/null 2>&1 || true   # drives and clears Unicorn HAT/pHAT
+apt-get update -qq >/dev/null 2>&1 || true
+apt -y install python3-pip python3-dev python3-rpi.gpio python3-smbus >/dev/null 2>&1 || \
+  apt-get -y install python3-pip python3-dev python3-rpi.gpio python3-smbus >/dev/null 2>&1 || true
+apt -y install python3-smbus2 >/dev/null 2>&1 || true
+pip3 install rpi_ws281x smbus2 >/dev/null 2>&1 || true   # drives and clears Unicorn HAT/pHAT
 
 cat > /etc/systemd/system/xpi.service <<'EOF'
 [Unit]
