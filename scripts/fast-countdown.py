@@ -20,7 +20,7 @@ def seconds_left():
     now = datetime.datetime.now()
     midnight = datetime.datetime.combine(
         now.date() + datetime.timedelta(days=1), datetime.time.min)
-    return max(0, int((midnight - now).total_seconds()))
+    return max(0.0, (midnight - now).total_seconds())
 
 
 def counter():
