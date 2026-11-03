@@ -88,7 +88,7 @@ labels it `inferred`.
 
 `scripts/` holds the xpi scripts: `message`, `timer`, `unicorn_message`,
 `hostname`, `ip`, `digital-clock`, `day-countdown`, `fast-countdown`,
-`draw`, `solid` and `clear`.
+`nanoseconds`, `draw`, `solid` and `clear`.
 
 The same folder holds every script from the archived Pimoroni example sets,
 under `microdot-phat/` and `unicorn-hat/`. That is 12 microdot-phat examples
