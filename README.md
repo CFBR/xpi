@@ -49,6 +49,10 @@ http://<pi-ip>/?action=switch&script=rainbow     # run or reset a script
 | `?action=stop` | Kill the script. Its last frame stays on the board |
 | `?action=clear` | Kill the script and blank the board |
 | `?action=boot&script=clock` | Set the boot script. Leave out `script` or use `none` to unset it |
+| `?action=playlist&scripts=rainbow,clock&seconds=60` | Rotate scripts every N seconds. Empty `scripts` clears it |
+| `?action=backup` | JSON of config, state and every script |
+| `?action=restore` (POST the backup JSON) | Write the scripts and config back |
+| `?action=savedrawing&script=NAME` (POST the pixels JSON) | Save the draw panel as a script |
 | `?action=status` | Running, pid, boot, scripts, boards, ip, revision, log |
 
 Quote the whole URL because `?` and `&` are shell metacharacters. Repeat `arg=`
@@ -89,7 +93,8 @@ labels it `inferred`.
 `scripts/` holds the xpi scripts: `message`, `timer`, `unicorn_message`,
 `hostname`, `ip`, `digital-clock`, `day-countdown`, `fast-countdown`,
 `nanoseconds`, `github-commits`, `stats`, `countdown-to`, `tally`, `progress`,
-`draw`, `solid` and `clear`.
+`rain`, `plasma`, `fire`, `breathe`, `morse`, `pomodoro`, `big-text`, `dice`,
+`coin`, `draw`, `solid` and `clear`.
 
 The same folder holds every script from the archived Pimoroni example sets,
 under `microdot-phat/` and `unicorn-hat/`. That is 12 microdot-phat examples

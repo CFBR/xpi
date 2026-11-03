@@ -454,6 +454,7 @@ try {
       <span class="btnrow">
         <button class="primary" onclick="sendPixels()">Send</button>
         <button onclick="clearPixels()">Blank</button>
+        <button onclick="saveDrawing()">Save as script</button>
       </span>
     </div>
 
@@ -471,6 +472,14 @@ try {
     <button onclick="deleteScript()">Delete file</button>
     <label class="field">upload
       <input type="file" id="edFile" accept=".py,text/python" onchange="fileChosen(this)">
+    </label>
+    <label class="field">args
+      <input id="edArgs" placeholder="one two" size="10">
+    </label>
+    <button onclick="runWithArgs()">Run</button>
+    <button onclick="backupNow()">Backup</button>
+    <label class="field">restore
+      <input type="file" id="restoreFile" accept=".json,application/json" onchange="restoreNow(this)">
     </label>
   </div>
   <p class="hint" style="margin:0 0 4px">Drop a .py file anywhere on the page to add it.</p>
@@ -839,15 +848,37 @@ function seedDrawing(design) {
   applyAllCells();
 }
 
-function sendPixels() {
-  if (!shapeNow) return;
+function pixelsPayload() {
   var out = [];
   Object.keys(pix).forEach(function (k) {
     var xy = k.split(",");
     if (shapeNow.mono) out.push([Number(xy[0]), Number(xy[1])]);
     else out.push([Number(xy[0]), Number(xy[1]), pix[k]]);
   });
-  act('update', 'script=draw&pixels=' + encodeURIComponent(JSON.stringify(out)), 'draw');
+  return out;
+}
+
+function sendPixels() {
+  if (!shapeNow) return;
+  act('update', 'script=draw&pixels=' + encodeURIComponent(JSON.stringify(pixelsPayload())), 'draw');
+}
+
+async function saveDrawing() {
+  if (!shapeNow) return;
+  var name = prompt("Save the drawing as a script:", "drawing");
+  if (!name) return;
+  var stem = name.trim().replace(/[^A-Za-z0-9_-]+/g, "_");
+  var resp = await apiFetch("action=savedrawing&script=" + encodeURIComponent(stem),
+                            {method: "POST",
+                             headers: {"Content-Type": "application/json"},
+                             body: JSON.stringify(pixelsPayload())});
+  var data = await resp.json();
+  if (data.ok) {
+    await refresh();
+    alert("saved " + data.script + " (" + data.pixels + " pixels)");
+  } else {
+    alert("save failed: " + (data.error || resp.status));
+  }
 }
 
 function clearPixels() {
@@ -1204,6 +1235,41 @@ async function deleteScript() {
   if (!data.ok) alert("delete failed: " + (data.error || resp.status));
   await refresh();
   document.getElementById("edText").value = "";
+}
+
+function runWithArgs() {
+  var stem = document.getElementById("edList").value;
+  if (!stem) return;
+  var args = (document.getElementById("edArgs").value || "").trim().split(/\s+/)
+    .filter(Boolean);
+  var extra = "script=" + encodeURIComponent(stem);
+  args.forEach(function (arg) { extra += "&arg=" + encodeURIComponent(arg); });
+  act("switch", extra, stem);
+}
+
+async function backupNow() {
+  var res = await apiFetch("action=backup");
+  var data = await res.json();
+  if (!data.scripts) return alert("backup failed: " + (data.error || res.status));
+  var blob = new Blob([JSON.stringify(data, null, 2)], {type: "application/json"});
+  var link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = "xpi-backup-" + new Date().toISOString().slice(0, 10) + ".json";
+  link.click();
+  URL.revokeObjectURL(link.href);
+}
+
+async function restoreNow(input) {
+  var file = input.files && input.files[0];
+  if (!file) return;
+  if (!confirm("Restore " + file.name + "? Scripts with the same name are overwritten.")) return;
+  var text = await file.text();
+  var resp = await apiFetch("action=restore", {method: "POST",
+    headers: {"Content-Type": "application/json"}, body: text});
+  var data = await resp.json();
+  alert(data.ok ? "restored " + data.scripts + " scripts"
+                : "restore failed: " + (data.error || resp.status));
+  await refresh();
 }
 
 /* ------------------------------------------------------------- actions --- */
