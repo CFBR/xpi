@@ -1,15 +1,12 @@
 # rain.py — falling green rain on a Unicorn board.
 #
 # On the microdot-phat it falls back to a mono dot rain, since the display has
-# no color. Speed comes from state.json "speed" (default 0.12 seconds).
+# no color. The global speed control scales its frame delay.
 
 import random
 import time
 
 import _display
-import _xpi_state
-
-DEFAULT_COLOR = (0, 255, 0)
 
 
 def delay():
