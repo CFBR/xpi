@@ -32,8 +32,8 @@ original path and license.
   and the `weather-icons/` assets they need.
 - `unicorn-hat/phat/`: pHAT-only examples.
 
-Three files are renamed to keep stems unique: `microdot-phat/microdot-clock.py`
-(the xpi `clock` replaces it), `hat/hat-clock.py` and `phat/phat-rainbow.py`.
+Two files are renamed because the board folders reused a name that already
+exists at the top level: `hat/hat-clock.py` and `phat/phat-rainbow.py`.
 
 Optional dependencies:
 
