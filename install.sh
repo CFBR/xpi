@@ -12,6 +12,7 @@ cp "$SRC/server.py" "$SRC/index.html" "$DEST/"
 # keep an existing config.json: it holds the boot script and any token
 if [ ! -f "$DEST/config.json" ]; then cp "$SRC/config.json" "$DEST/"; fi
 cp -r "$SRC/scripts/." "$DEST/scripts/"          # keeps scripts saved from the web editor
+cp -r "$SRC/support" "$DEST/"
 cp -r "$SRC/vendor" "$SRC/LICENSES" "$SRC/docs" "$DEST/"
 if [ -f "$SRC/README.md" ]; then cp "$SRC/README.md" "$DEST/"; fi
 

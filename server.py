@@ -78,6 +78,7 @@ STATE_FILE = os.path.join(ROOT, "state.json")
 CONFIG_FILE = os.path.join(ROOT, "config.json")
 INDEX_FILE = os.path.join(ROOT, "index.html")
 SCRIPTS_DIR = os.path.join(ROOT, "scripts")
+SUPPORT_DIR = os.path.join(ROOT, "support")
 SCAN_DIRS = [
     SCRIPTS_DIR,
     os.path.join(SCRIPTS_DIR, "microdot-phat"),
@@ -215,7 +216,7 @@ _sup_lock = threading.RLock()  # serializes start/stop (reentrant: start calls s
 def child_env():
     env = os.environ.copy()
     inherited = env.get("PYTHONPATH", "")
-    extra = [SCRIPTS_DIR] + [p for p in REPO_LIBPATHS if os.path.isdir(p)]
+    extra = [SUPPORT_DIR, SCRIPTS_DIR] + [p for p in REPO_LIBPATHS if os.path.isdir(p)]
     joined = ":".join(extra)
     env["PYTHONPATH"] = inherited + ":" + joined if inherited else joined
     return env
