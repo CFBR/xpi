@@ -413,6 +413,33 @@ try {
       <button class="primary">Send</button>
     </form>
 
+    <div class="row">
+      <label class="field">direction
+        <select id="msgDir">
+          <option value="left">left</option>
+          <option value="right">right</option>
+        </select>
+      </label>
+      <label class="field">mode
+        <select id="msgMode">
+          <option value="scroll">scroll</option>
+          <option value="word">word</option>
+        </select>
+      </label>
+      <label class="field">speed
+        <select id="msgSpeed">
+          <option value="0.5">0.5x</option>
+          <option value="1" selected>1x</option>
+          <option value="2">2x</option>
+          <option value="4">4x</option>
+        </select>
+      </label>
+      <label class="field">hold
+        <input id="msgHold" type="number" min="0.2" step="0.1" value="1" style="width:4.5em">
+      </label>
+      <label class="field"><input id="msgFade" type="checkbox"> fade</label>
+    </div>
+
     <div class="tabs" id="boards"></div>
     <div class="chips" id="grid"></div>
     <p class="logline" id="log">last output: (none)</p>
@@ -1322,11 +1349,23 @@ function saveBoot() {
   act('boot', 'script=' + encodeURIComponent(sel.value));
 }
 
+function messageScript() {
+  var attached = (state && state.attached) || "";
+  return attached.indexOf("unicorn") >= 0 ? "unicorn_message" : "message";
+}
+
 function send() {
   var t = document.getElementById('msg').value;
   var s = document.getElementById('secs').value;
   if (t) {
-    act('update', 'script=message&message=' + encodeURIComponent(t), 'message');
+    var script = messageScript();
+    var extra = 'script=' + script + '&message=' + encodeURIComponent(t)
+      + '&direction=' + document.getElementById('msgDir').value
+      + '&mode=' + document.getElementById('msgMode').value
+      + '&text_speed=' + document.getElementById('msgSpeed').value
+      + '&word_seconds=' + document.getElementById('msgHold').value
+      + '&fade=' + (document.getElementById('msgFade').checked ? 1 : 0);
+    act('update', extra, script);
   } else if (s) {
     act('update', 'script=timer&seconds=' + encodeURIComponent(s), 'timer');
   }
