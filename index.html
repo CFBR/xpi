@@ -291,6 +291,21 @@ try {
     background: var(--tabs-bg); color: var(--muted); font-size: 13px;
   }
 
+  input[type=color] {
+    width: 30px; height: 30px; padding: 0;
+    border: 1px solid var(--line2); border-radius: 8px;
+    background: var(--panel2); cursor: pointer;
+  }
+  .logbox { margin-top: 8px; }
+  .logbox summary {
+    cursor: pointer; font-size: 12px; color: var(--muted);
+  }
+  .logbox pre {
+    margin: 6px 0 0; max-height: 140px; overflow: auto;
+    font: 11.5px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
+    background: var(--well); padding: 8px; border-radius: 8px;
+    white-space: pre-wrap;
+  }
   .canvaswrap {
     display: flex; justify-content: center;
     padding: 12px;
@@ -401,6 +416,10 @@ try {
     <div class="tabs" id="boards"></div>
     <div class="chips" id="grid"></div>
     <p class="logline" id="log">last output: (none)</p>
+    <details class="logbox">
+      <summary>Log <span class="hint" id="ver"></span></summary>
+      <pre id="logFull">(empty)</pre>
+    </details>
   </section>
 
   <section class="card">
@@ -426,6 +445,11 @@ try {
 
     <div class="row">
       <div class="palette" id="palette"></div>
+      <input type="color" id="drawColorPick" value="#ffffff" title="custom LED color"
+             oninput="customDrawColor(this.value)">
+      <label class="field" title="color for text scripts">text
+        <input type="color" id="textColorPick" value="#00ffff" onchange="setTextColor(this.value)">
+      </label>
       <span class="spacer"></span>
       <span class="btnrow">
         <button class="primary" onclick="sendPixels()">Send</button>
@@ -565,6 +589,8 @@ function renderChips() {
   var tail = (state.log || "").trim().split("\n").filter(Boolean).pop() || "(none)";
   log.textContent = "last output: " + tail;
   log.title = (state.log || "").trim() || "(none)";
+  document.getElementById("logFull").textContent = (state.log || "").trim() || "(empty)";
+  document.getElementById("ver").textContent = "xpi " + (state.version || "");
 }
 
 function fillEditorList() {
@@ -680,6 +706,16 @@ function renderPalette() {
   e.title = "erase (or shift-drag)";
   e.onclick = function () { erase = true; renderPalette(); };
   pal.appendChild(e);
+}
+
+function customDrawColor(value) {
+  drawColor = value;
+  erase = false;
+  renderPalette();
+}
+
+function setTextColor(value) {
+  act('update', 'color=' + encodeURIComponent(value));
 }
 
 function keyOf(x, y) { return x + "," + y; }
@@ -931,6 +967,54 @@ function makeLedGrid(shape, cells) {
   return wrap;
 }
 
+/* ------------------------------------------- api with optional token --- */
+
+function tokenValue() {
+  try { return localStorage.getItem("xpi-token") || ""; } catch (e) { return ""; }
+}
+
+function apiHeaders(extra) {
+  var headers = {"Accept": "application/json"};
+  var token = tokenValue();
+  if (token) headers["X-XPI-Token"] = token;
+  if (extra) for (var key in extra) headers[key] = extra[key];
+  return headers;
+}
+
+async function apiFetch(url, options) {
+  options = options || {};
+  options.headers = apiHeaders(options.headers);
+  var response = await fetch(url, options);
+  if (response.status !== 401) return response;
+  var token = prompt("This action needs the xpi token:");
+  if (!token) return response;
+  try { localStorage.setItem("xpi-token", token); } catch (e) {}
+  options.headers = apiHeaders(options.headers);
+  options.headers["X-XPI-Token"] = token;
+  return fetch(url, options);
+}
+
+/* --------------------------------------------------------- time helpers --- */
+
+function secondsToMidnight() {
+  var now = new Date();
+  var midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+  return Math.max(0, (midnight - now) / 1000);
+}
+
+function hhmmss(total) {
+  var secs = Math.max(0, Math.floor(total));
+  var h = Math.floor(secs / 3600);
+  var m = Math.floor((secs % 3600) / 60);
+  var s = secs % 60;
+  return (h < 10 ? "0" : "") + h + ":" + (m < 10 ? "0" : "") + m + ":"
+    + (s < 10 ? "0" : "") + s;
+}
+
+function fastCount() {
+  return Math.round(999999 * secondsToMidnight() / 86400);
+}
+
 function renderPreview(designState) {
   if (!state) return;
   var box = document.getElementById("preview");
@@ -971,6 +1055,36 @@ function renderPreview(designState) {
   } else if (runningScript === "hostname") {
     fillTextPreview(String(designState.hostname || "pi").toUpperCase());
     note.textContent = "scrolling hostname";
+  } else if (runningScript === "clock" || runningScript === "digital-clock") {
+    var now = new Date();
+    fillTextPreview(("0" + now.getHours()).slice(-2) + ":"
+                    + ("0" + now.getMinutes()).slice(-2));
+    note.textContent = "clock";
+  } else if (runningScript === "day-countdown") {
+    fillTextPreview(hhmmss(secondsToMidnight()));
+    note.textContent = "time left in the day";
+  } else if (runningScript === "fast-countdown") {
+    fillTextPreview(String(fastCount()));
+    note.textContent = "999999 scaled to the day";
+  } else if (runningScript === "nanoseconds") {
+    fillTextPreview(String(Date.now() % 1000000).padStart(6, "0"));
+    note.textContent = "changes at every refresh";
+  } else if (runningScript === "ip") {
+    fillTextPreview(((state.hostname || "pi") + " " + (state.ip || "")).toUpperCase());
+    note.textContent = "hostname and ip";
+  } else if (runningScript === "tally") {
+    fillTextPreview(String((designState && designState.count) || "0"));
+    note.textContent = "tally";
+  } else if (runningScript === "progress") {
+    var pct = Math.max(0, Math.min(100, Number((designState && designState.percent) || 0)));
+    for (var py = 0; py < shape.r; py++)
+      for (var px = 0; px < shape.c; px++)
+        if (px < Math.round(shape.c * pct / 100)) cells[py * shape.c + px] = textColor;
+    note.textContent = pct + "%";
+  } else if (runningScript === "solid") {
+    for (var sy = 0; sy < shape.r; sy++)
+      for (var sx = 0; sx < shape.c; sx++) cells[sy * shape.c + sx] = textColor;
+    note.textContent = "solid " + (designState.color || "white");
   } else if (runningScript) {
     note.textContent = "'" + runningScript + "' drives the hardware, no preview";
   } else {
@@ -984,8 +1098,7 @@ function renderPreview(designState) {
 async function loadScript() {
   var stem = document.getElementById("edList").value || "";
   if (!stem) return;
-  var res = await fetch("action=getscript&script=" + encodeURIComponent(stem),
-                        {headers: {"Accept": "application/json"}});
+  var res = await apiFetch("action=getscript&script=" + encodeURIComponent(stem));
   var data = await res.json();
   if (data.code != null) {
     document.getElementById("edText").value = data.code;
@@ -1048,7 +1161,7 @@ window.addEventListener("drop", async function (e) {
 async function uploadScript(file) {
   var text = await file.text();
   var stem = file.name.replace(/\.py$/i, "").replace(/[^A-Za-z0-9_-]+/g, "_");
-  var resp = await fetch("action=savescript&script=" + encodeURIComponent(stem),
+  var resp = await apiFetch("action=savescript&script=" + encodeURIComponent(stem),
                          {method: "POST",
                           headers: {"Content-Type": "text/plain; charset=utf-8",
                                     "Accept": "application/json"},
@@ -1084,7 +1197,7 @@ async function saveScript() {
 async function deleteScript() {
   var stem = document.getElementById("edList").value || "";
   if (!stem || !confirm("Delete " + stem + " from the Pi?")) return;
-  var resp = await fetch("action=delscript&script=" +
+  var resp = await apiFetch("action=delscript&script=" +
                          encodeURIComponent(stem),
                          {headers: {"Accept": "application/json"}});
   var data = await resp.json();
@@ -1105,7 +1218,7 @@ async function act(action, extra, name) {
     document.getElementById('pRunPill').className = 'pill pending';
   }
   try {
-    await fetch('/?' + qs, {headers: {"Accept": "application/json"}});
+    await apiFetch('/?' + qs);
   } finally {
     pendingScript = null;
     refresh();
@@ -1148,7 +1261,7 @@ window.addEventListener("resize", function () {
 (async function applyUrl() {
   var qs = location.search.replace(/^\?/, "");
   if (/action=/.test(qs)) {
-    try { await fetch('/?' + qs, {headers: {"Accept": "application/json"}}); } catch (e) {}
+    try { await apiFetch('/?' + qs); } catch (e) {}
   }
   refresh();
 })();

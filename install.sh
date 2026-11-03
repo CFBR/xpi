@@ -8,10 +8,22 @@ SRC="$(cd "$(dirname "$0")" && pwd)"
 
 echo "deploying from $SRC to $DEST"
 mkdir -p "$DEST/scripts"
-cp "$SRC/server.py" "$SRC/index.html" "$SRC/config.json" "$DEST/"
+cp "$SRC/server.py" "$SRC/index.html" "$DEST/"
+# keep an existing config.json: it holds the boot script and any token
+if [ ! -f "$DEST/config.json" ]; then cp "$SRC/config.json" "$DEST/"; fi
 cp -r "$SRC/scripts/." "$DEST/scripts/"          # keeps scripts saved from the web editor
 cp -r "$SRC/vendor" "$SRC/LICENSES" "$SRC/docs" "$DEST/"
 if [ -f "$SRC/README.md" ]; then cp "$SRC/README.md" "$DEST/"; fi
+
+# microdot-phat needs I2C; harmless on Unicorn boards
+CFG=/boot/config.txt
+if [ -f /boot/firmware/config.txt ]; then CFG=/boot/firmware/config.txt; fi
+if [ -f "$CFG" ]; then
+  sed -i 's/^#dtparam=i2c_arm=on/dtparam=i2c_arm=on/' "$CFG" 2>/dev/null || true
+  grep -q '^dtparam=i2c_arm=on' "$CFG" 2>/dev/null || echo 'dtparam=i2c_arm=on' >> "$CFG"
+fi
+grep -q '^i2c-dev' /etc/modules 2>/dev/null || echo 'i2c-dev' >> /etc/modules
+modprobe i2c-dev 2>/dev/null || true
 
 # display library dependencies (already present on most Pi images)
 apt-get update -qq >/dev/null 2>&1 || true

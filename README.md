@@ -88,7 +88,8 @@ labels it `inferred`.
 
 `scripts/` holds the xpi scripts: `message`, `timer`, `unicorn_message`,
 `hostname`, `ip`, `digital-clock`, `day-countdown`, `fast-countdown`,
-`nanoseconds`, `draw`, `solid` and `clear`.
+`nanoseconds`, `github-commits`, `stats`, `countdown-to`, `tally`, `progress`,
+`draw`, `solid` and `clear`.
 
 The same folder holds every script from the archived Pimoroni example sets,
 under `microdot-phat/` and `unicorn-hat/`. That is 12 microdot-phat examples
@@ -97,6 +98,29 @@ optional dependencies.
 
 To add a script, drag a `.py` file onto the page. It saves to
 `/opt/xpi/scripts/` and appears in the list.
+
+## Token
+
+Set a `token` in `config.json` to protect `savescript`, `delscript`, `boot` and
+`stop`:
+
+```json
+{"boot": "clock", "token": "your-secret"}
+```
+
+Send it as `?token=...` or in an `X-XPI-Token` header. The page asks once and
+keeps it in the browser. Leave it null for an open LAN box.
+
+## Updating
+
+On the Pi, from the clone:
+
+```sh
+./update.sh
+```
+
+That pulls `main` and runs the installer, which keeps `config.json` and any
+scripts saved from the page.
 
 ## Credits
 

@@ -5,6 +5,7 @@
 import argparse
 import collections
 import datetime
+import hmac
 import http.server
 import json
 import os
@@ -16,6 +17,8 @@ import tempfile
 import threading
 import time
 import urllib.parse
+
+VERSION = "1.1"
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
 STATE_FILE = os.path.join(ROOT, "state.json")
@@ -340,6 +343,8 @@ def status():
         "attached": detect_device(),
         "hostname": os.uname().nodename,
         "ip": local_ip(),
+        "version": VERSION,
+        "token": bool(read_config().get("token")),
         "running": current_stem(child),
         "pid": child.pid if child else None,
         "started": started,
@@ -418,6 +423,10 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 return
             if action != "savescript":
                 self._drain_body()
+            if action in ("stop", "boot", "savescript", "delscript") \
+                    and not self.authorized(params):
+                self.respond(401, {"error": "token required"})
+                return
             if action == "update":
                 self.act_update(params)
             elif action == "switch":
@@ -456,6 +465,15 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 qs = tail          # tolerate /action=update&script=... (no ?)
         return urllib.parse.parse_qs(qs)
 
+    def authorized(self, params):
+        """True when no token is configured, or the request carries it."""
+        token = read_config().get("token")
+        if not token:
+            return True
+        supplied = (params.get("token", [""])[0]
+                    or self.headers.get("X-XPI-Token", ""))
+        return hmac.compare_digest(str(token), str(supplied))
+
     def act_update(self, params):
         script = params.pop("script", [None])[0]
         args = params.pop("arg", [])
@@ -491,12 +509,16 @@ class Handler(http.server.BaseHTTPRequestHandler):
     def act_boot(self, params):
         script = params.pop("script", [None])[0]
         if script in (None, "") or script == "none":
-            write_config({"boot": None})
+            config = read_config()
+            config["boot"] = None
+            write_config(config)
             return self.respond(200, {"ok": True, "boot": None})
         if script not in SCRIPT_REGISTRY:
             return self.respond(404, {"error": "unknown script",
                                       "script": script})
-        write_config({"boot": script})
+        config = read_config()
+        config["boot"] = script
+        write_config(config)
         self.respond(200, {"ok": True, "boot": script})
 
     def serve_index(self):
