@@ -13,10 +13,8 @@ DEFAULT_COLOR = (0, 255, 0)
 
 
 def delay():
-    try:
-        return max(0.02, float(_xpi_state.value("speed") or 0.12))
-    except (TypeError, ValueError):
-        return 0.12
+    # fixed base delay; sitecustomize scales it by state.json "speed"
+    return 0.12
 
 
 def run_unicorn():
