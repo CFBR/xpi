@@ -17,7 +17,7 @@ if [ -f "$SRC/README.md" ]; then cp "$SRC/README.md" "$DEST/"; fi
 apt-get update -qq >/dev/null 2>&1 || true
 apt -y install python3-pip python3-dev python3-rpi.gpio python3-smbus >/dev/null 2>&1 || \
   apt-get -y install python3-pip python3-dev python3-rpi.gpio python3-smbus >/dev/null 2>&1 || true
-apt -y install python3-smbus2 >/dev/null 2>&1 || true
+apt -y install python3-smbus2 >/dev/null 2>&1 || true   # bookworm only; pip covers bullseye
 pip3 install rpi_ws281x smbus2 >/dev/null 2>&1 || true   # drives and clears Unicorn HAT/pHAT
 
 cat > /etc/systemd/system/xpi.service <<'EOF'
