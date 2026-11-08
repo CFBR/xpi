@@ -1,6 +1,10 @@
 Unicorn HAT Examples
 ====================
 
+Copied from `pimoroni/unicorn-hat` `examples/hat/README.md`, MIT License,
+Pimoroni Ltd. Edited for xpi: the `show_png.py` entry is gone, see the note at
+the end.
+
 The examples in this folder must be run with `sudo`, like so:
 
     sudo ./clock.py
@@ -42,11 +46,10 @@ matrix.py
 
 Knock, knock, Neo.
 
-show_png.py
------------
+Note on show_png.py
+-------------------
 
-Shows how you can open and display a PNG image file (here lofi.png), great for sprite animations.
-
-**Requirements:**
-
-    sudo pip install pillow
+Pimoroni's `show_png.py` example and its `lofi.png` sprite are not in this
+repo. The sprite art is CC BY-NC-SA 3.0, which cannot ship in an MIT repo.
+xpi's own `image` script, at `scripts/image.py`, does the same job with any
+PNG, GIF or JPEG you point it at.

@@ -16,6 +16,10 @@ cp -r "$SRC/support" "$DEST/"
 cp -r "$SRC/vendor" "$SRC/LICENSES" "$SRC/docs" "$DEST/"
 if [ -f "$SRC/README.md" ]; then cp "$SRC/README.md" "$DEST/"; fi
 
+# scripts/unicorn-hat/hat/show_png.py and lofi.png left the repo for licence
+# reasons; drop them from an older install so the page stops listing them
+rm -f "$DEST/scripts/unicorn-hat/hat/show_png.py" "$DEST/scripts/unicorn-hat/hat/lofi.png"
+
 # microdot-phat needs I2C; harmless on Unicorn boards
 CFG=/boot/config.txt
 if [ -f /boot/firmware/config.txt ]; then CFG=/boot/firmware/config.txt; fi
@@ -31,6 +35,7 @@ apt-get update -qq >/dev/null 2>&1 || true
 apt -y install python3-pip python3-dev python3-rpi.gpio python3-smbus >/dev/null 2>&1 || \
   apt-get -y install python3-pip python3-dev python3-rpi.gpio python3-smbus >/dev/null 2>&1 || true
 apt -y install python3-smbus2 >/dev/null 2>&1 || true   # bookworm only; pip covers bullseye
+apt -y install python3-pil >/dev/null 2>&1 || true      # image script
 pip3 install rpi_ws281x smbus2 >/dev/null 2>&1 || true   # drives and clears Unicorn HAT/pHAT
 
 cat > /etc/systemd/system/xpi.service <<'EOF'

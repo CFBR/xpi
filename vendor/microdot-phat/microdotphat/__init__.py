@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+# Vendored from pimoroni/microdot-phat 47f9cc3, MIT, Pimoroni Ltd.
+# See vendor/README.md and LICENSES/pimoroni-microdot-phat.txt
 
 """A library for driving the Pimoroni Micro Dot pHAT Raspberry Pi add-on.
 

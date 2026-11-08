@@ -1,3 +1,6 @@
+# Vendored from pimoroni/unicorn-hat 9cb7d9e, MIT, Pimoroni Ltd.
+# See vendor/README.md and LICENSES/pimoroni-unicorn-hat.txt
+
 import atexit
 import colorsys
 from rpi_ws281x import __version__ as __rpi_ws281x__, PixelStrip, Color
