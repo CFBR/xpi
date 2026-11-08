@@ -18,7 +18,7 @@ jobs:
     name: Vulnerability and misconfiguration scan
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Trivy scan (table)
         uses: aquasecurity/trivy-action@v0.36.0
@@ -45,14 +45,14 @@ jobs:
 
       - name: Upload SARIF to code scanning
         if: github.event.repository.visibility == 'public'
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: trivy-results.sarif
           category: trivy
 
       - name: Upload report artifact
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: trivy-report
           path: trivy-results.sarif
