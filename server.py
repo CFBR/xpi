@@ -169,7 +169,7 @@ def _board_from_source(path):
 
 
 def _board_from_dir(directory):
-    for tag in (("/scripts/unicorn-hat/phat", "unicorn phat 8x8"),
+    for tag in (("/scripts/unicorn-hat/phat", "unicorn phat 8x4"),
                 ("/scripts/unicorn-hat/hat", "unicorn-hat 16x8"),
                 ("/scripts/microdot-phat", "microdot-phat"),
                 ("/scripts/unicorn-hat", "unicorn-hat")):
@@ -400,7 +400,7 @@ def detect_device():
 
     - `microdot-phat`: I2C chips 0x61/0x62/0x63 answer (definitive)
     - `unicorn-hat 16x8`: device-tree HAT EEPROM product string (definitive)
-    - `unicorn phat 8x8 (inferred)`: neither of the above; ws281x strips give
+    - `unicorn phat 8x4 (inferred)`: neither of the above; ws281x strips give
       no electrical ack, so presence is inferred, not sensed
     - `none-probed`: neither microdot chips nor any other known sign
     """
