@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+# Vendored from pimoroni/microdot-phat 47f9cc3, MIT, Pimoroni Ltd.
+# See vendor/README.md and LICENSES/pimoroni-microdot-phat.txt
 
 tinynumbers = [
     [0b11111, 0b11111],

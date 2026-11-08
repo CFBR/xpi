@@ -1,3 +1,6 @@
+# Vendored from pimoroni/microdot-phat 47f9cc3, MIT, Pimoroni Ltd.
+# See vendor/README.md and LICENSES/pimoroni-microdot-phat.txt
+
 try:
     from smbus2 import SMBus
 except ImportError:
