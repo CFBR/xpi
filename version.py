@@ -7,7 +7,7 @@
 
 import re
 
-__version__ = "2.5.0"
+__version__ = "2.5.1"
 
 _SEMVER = re.compile(r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$")
 _match = _SEMVER.match(__version__)
