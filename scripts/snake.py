@@ -18,24 +18,17 @@
 
 import time
 
+import _dot
 import _xpi_state
 import microdotphat
 
 WIDTH = getattr(microdotphat, "WIDTH", 45)
 HEIGHT = getattr(microdotphat, "HEIGHT", 7)
 
-MATRIX = 5              # visible columns per 5x7 matrix
-STRIDE = 8              # buffer columns from one matrix start to the next
-MATRICES = (WIDTH + STRIDE - MATRIX) // STRIDE
-VISIBLE = MATRICES * MATRIX
+VISIBLE = _dot.visible_width(WIDTH)
 LENGTH = 8              # lit pixels in each snake
 GAP = 34                # dark pixels between snakes
 FRAME = 0.08            # seconds per step, before the speed slider
-
-
-def buffer_x(x):
-    """Map a visible column to the library buffer, skipping hidden columns."""
-    return (x // MATRIX) * STRIDE + x % MATRIX
 
 
 def build_columns():
@@ -47,7 +40,7 @@ def build_columns():
         else:
             rows = range(HEIGHT)
         for y in rows:
-            path.append((buffer_x(x), y))
+            path.append((_dot.buffer_x(x), y))
     return path
 
 
@@ -60,7 +53,7 @@ def build_rows():
         else:
             columns = range(VISIBLE - 1, -1, -1)
         for x in columns:
-            path.append((buffer_x(x), y))
+            path.append((_dot.buffer_x(x), y))
     return path
 
 
