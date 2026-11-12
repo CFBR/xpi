@@ -27,6 +27,7 @@ load.
 | `automata` | Life, HighLife, Seeds and Brian's Brain take turns |
 | `melt` | A message assembles from falling pixels and melts away |
 | `sonar` | Radar sweep with fading echoes |
+| `twinkle` | Dots appear and vanish in place with a short flicker |
 | `boids` | Flocking colored particles on a Unicorn board |
 | `aurora` | Colored curtains on a Unicorn board |
 | `lightning` | Storm, rain and branching bolts on a Unicorn board |
