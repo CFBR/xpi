@@ -13,6 +13,8 @@ cp "$SRC/server.py" "$SRC/index.html" "$SRC/version.py" "$DEST/"
 if [ ! -f "$DEST/config.json" ]; then cp "$SRC/config.json" "$DEST/"; fi
 cp -r "$SRC/scripts/." "$DEST/scripts/"          # keeps scripts saved from the web editor
 cp -r "$SRC/support" "$DEST/"
+mkdir -p "$DEST/assets"
+cp -r "$SRC/assets/." "$DEST/assets/"
 cp -r "$SRC/vendor" "$SRC/LICENSES" "$SRC/docs" "$DEST/"
 if [ -f "$SRC/README.md" ]; then cp "$SRC/README.md" "$DEST/"; fi
 

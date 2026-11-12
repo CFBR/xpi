@@ -78,6 +78,7 @@ ROOT = os.path.dirname(os.path.abspath(__file__))
 STATE_FILE = os.path.join(ROOT, "state.json")
 CONFIG_FILE = os.path.join(ROOT, "config.json")
 INDEX_FILE = os.path.join(ROOT, "index.html")
+ASSETS_DIR = os.path.join(ROOT, "assets")
 SCRIPTS_DIR = os.path.join(ROOT, "scripts")
 SUPPORT_DIR = os.path.join(ROOT, "support")
 SCAN_DIRS = [
@@ -87,6 +88,13 @@ SCAN_DIRS = [
     os.path.join(SCRIPTS_DIR, "unicorn-hat", "hat"),
     os.path.join(SCRIPTS_DIR, "unicorn-hat", "phat"),
 ]
+STATIC_FILES = {
+    "/favicon.ico": ("favicon.ico", "image/x-icon"),
+    "/favicon.svg": ("favicon.svg", "image/svg+xml"),
+    "/apple-touch-icon.png": ("apple-touch-icon.png", "image/png"),
+    "/icon-192.png": ("icon-192.png", "image/png"),
+    "/icon-512.png": ("icon-512.png", "image/png"),
+}
 REPO_LIBPATHS = [
     os.path.join(ROOT, "vendor/microdot-phat"),
     os.path.join(ROOT, "vendor/unicorn-hat"),
@@ -532,6 +540,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
             if not action:
                 if path in ("/", "/index.html"):
                     self.serve_index()
+                elif path in STATIC_FILES:
+                    self.serve_static(path)
                 else:
                     self.respond(404, {"error": "no action"})
                 return
@@ -662,6 +672,15 @@ class Handler(http.server.BaseHTTPRequestHandler):
         except OSError:
             return self.respond(404, {"error": "index.html missing"})
         self.respond(200, body, "text/html")
+
+    def serve_static(self, path):
+        name, ctype = STATIC_FILES[path]
+        try:
+            with open(os.path.join(ASSETS_DIR, name), "rb") as fh:
+                body = fh.read()
+        except OSError:
+            return self.respond(404, {"error": "asset missing"})
+        self.respond(200, body, ctype)
 
     # ---------------------------------------------------------- scripts --
     @staticmethod
@@ -967,8 +986,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         ctype = {"json": "application/json", "html": "text/html"}.get(
             kind)
         if ctype is None:
-            ctype = kind if kind in ("text/html", "text/plain") \
-                else "application/json"
+            ctype = kind if "/" in kind else "application/json"
         if kind == "json":
             body = json.dumps(payload).encode()
         else:

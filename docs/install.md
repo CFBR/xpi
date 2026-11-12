@@ -16,7 +16,7 @@ sudo ./install.sh
 
 The installer:
 
-- copies the server, page, scripts, vendored libraries and docs to `/opt/xpi`
+- copies the server, page, scripts, vendored libraries, icons and docs to `/opt/xpi`
 - enables I2C in `config.txt` (under `/boot/firmware/`, or `/boot/` on older
   images) and in `/etc/modules`, which the Micro Dot pHAT needs and the Unicorn
   boards ignore
@@ -82,7 +82,8 @@ sudo python3 /opt/xpi/server.py --port 8080
 | `/opt/xpi/server.py`, `index.html` | the server and the control page |
 | `/opt/xpi/scripts/` | every runnable script, including ones saved from the page |
 | `/opt/xpi/vendor/`, `support/`, `LICENSES/`, `docs/` | libraries, helpers, licenses, these notes |
-| `/opt/xpi/config.json` | boot script, playlist and token |
+| `/opt/xpi/assets/` | favicon and app icons |
+| `/opt/xpi/config.json` | boot script, playlist, groups, ntfy and token |
 | `/opt/xpi/state.json` | message, countdown, brightness, speed, revision |
 
 `config.json` is created on install and never overwritten. `state.json` is
