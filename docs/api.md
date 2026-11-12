@@ -28,6 +28,7 @@ Quote the whole URL in a shell, because `?` and `&` are shell metacharacters.
 | `?action=delgroup&name=<name>` | Delete a group |
 | `?action=playgroup&name=<name>` | Rotate through a saved group |
 | `?action=stopgroup` | Stop group rotation |
+| `?action=saventfy&url=<base>&topic=<topic>&token=<token>&start=1` | Save ntfy settings and optionally start the alert listener |
 | `?action=status` | Attached board, running script, pid, boot, scripts, boards, ip, revision, log. `?action=scripts` is an alias |
 | `?action=state` | The current `state.json` |
 | `?action=getscript&script=<name>` | The script's source, as `{"script": ..., "code": ...}` |
@@ -77,6 +78,18 @@ active, and the server rotates through it in order. `stopgroup` clears the
 active group and leaves the current script running. A group overrides the
 older `playlist` keys until it is stopped.
 
+## ntfy alerts
+
+`saventfy` writes `config.json` `ntfy` with `url`, `topic` and an optional
+`token`. The token is not returned by status or stored in `state.json`.
+`start=1` also starts `ntfy`, which subscribes to `<url>/<topic>/json`
+and clears any active group so the rotation cannot replace it.
+High-priority messages flash, then scroll. After `ntfy_hold` seconds
+(default 20) the display returns to a clock.
+
+Apprise can publish to the same topic through its ntfy target, so one
+subscription covers every service that forwards there.
+
 ## Colors
 
 Names: `red`, `green`, `blue`, `white`, `yellow`, `orange`, `purple`,
@@ -106,7 +119,8 @@ stop:
 ```
 
 Guarded: `stop`, `boot`, `playlist`, `savegroup`, `delgroup`, `playgroup`,
-`stopgroup`, `savescript`, `delscript`, `savedrawing`, `backup` and `restore`. Send it as `?token=...` or in an `X-XPI-Token` header.
+`stopgroup`, `saventfy`, `savescript`, `delscript`, `savedrawing`, `backup`
+and `restore`. Send it as `?token=...` or in an `X-XPI-Token` header.
 The page asks once and keeps it in the browser. Leave it null for an open box
 on your own network.
 
@@ -115,7 +129,7 @@ on your own network.
 `?action=backup` returns one JSON object:
 
 ```json
-{"version": "2.2.0", "config": {}, "state": {}, "scripts": {"rain.py": "..."}}
+{"version": "2.3.0", "config": {}, "state": {}, "scripts": {"rain.py": "..."}}
 ```
 
 POST it back to `?action=restore` to write the scripts and config in. Useful
