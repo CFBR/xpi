@@ -402,6 +402,13 @@ def show():
     if _mirror:
         scrolled_buffer = numpy.fliplr(scrolled_buffer[:7, :45])
 
+    try:
+        import _xpi_frame
+        if _xpi_frame.due():
+            _xpi_frame.publish_microdot(scrolled_buffer)
+    except Exception:
+        pass
+
     for m_x in range(6):
         x = (m_x * 8)
         b = scrolled_buffer[0:7, x:x + 5]

@@ -77,6 +77,7 @@ if __name__ == "__main__":
 ROOT = os.path.dirname(os.path.abspath(__file__))
 STATE_FILE = os.path.join(ROOT, "state.json")
 CONFIG_FILE = os.path.join(ROOT, "config.json")
+FRAME_FILE = os.path.join(tempfile.gettempdir(), "xpi-frame.json")
 INDEX_FILE = os.path.join(ROOT, "index.html")
 ASSETS_DIR = os.path.join(ROOT, "assets")
 SCRIPTS_DIR = os.path.join(ROOT, "scripts")
@@ -137,6 +138,25 @@ def bump_state(patch):
         data["revision"] = data.get("revision", 0) + 1
         _write_state(data)
         return data["revision"]
+
+
+def read_frame():
+    """The last frame published by the display libraries, or available=false."""
+    try:
+        with open(FRAME_FILE) as fh:
+            data = json.load(fh)
+    except (OSError, ValueError):
+        return {"available": False}
+    if not isinstance(data, dict):
+        return {"available": False}
+    try:
+        age = max(0.0, time.time() - float(data.get("ts")))
+    except (TypeError, ValueError):
+        age = 0.0
+    data.pop("ts", None)
+    data["available"] = True
+    data["age"] = round(age, 2)
+    return data
 
 
 # --------------------------------------------------------------- config ---
@@ -567,6 +587,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 self.respond(200, status(), "json")
             elif action == "state":
                 self.respond(200, _read_state(), "json")
+            elif action == "frame":
+                self.respond(200, read_frame(), "json")
             elif action == "getscript":
                 self.act_getscript(params)
             elif action == "savescript":

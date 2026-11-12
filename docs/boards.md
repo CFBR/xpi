@@ -47,6 +47,9 @@ the other way round.
   libraries. A script can set its own brightness and the slider still scales it.
 - `time.sleep` is scaled by `state.json` `speed` for every script, through
   `support/sitecustomize.py`.
+- Every `show()` publishes the last frame through `support/_xpi_frame.py`, so
+  the page's viewer follows the actual board. A script does not need to call
+  anything extra.
 
 The Unicorn boards need root because the driver writes to `/dev/mem`. The
 installer runs the service as root for that reason.
