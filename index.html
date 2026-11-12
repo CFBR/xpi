@@ -367,17 +367,44 @@ try {
   .cell.mono { border-radius: 2px; }
 
   /* ---------- editor ---------- */
-  details.editor { margin-top: 14px; }
-  details.editor > summary {
+  details.card { margin-top: 14px; }
+  details.card > summary {
     cursor: pointer;
     font-size: 12px; font-weight: 600; letter-spacing: .09em;
     text-transform: uppercase; color: var(--muted);
     list-style: none;
   }
-  details.editor > summary::-webkit-details-marker { display: none; }
-  details.editor > summary::before { content: "▸ "; }
-  details.editor[open] > summary::before { content: "▾ "; }
-  details.editor > summary:hover { color: var(--text); }
+  details.card > summary::-webkit-details-marker { display: none; }
+  details.card > summary::before { content: "▸ "; }
+  details.card[open] > summary::before { content: "▾ "; }
+  details.card > summary:hover { color: var(--text); }
+  .groupScripts {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 3px 10px;
+    max-height: 240px; overflow-y: auto;
+    padding: 8px; margin: 0 0 10px;
+    border: 1px solid var(--line); border-radius: 10px;
+    background: var(--well);
+  }
+  .groupScript {
+    display: flex; align-items: center; gap: 6px;
+    padding: 2px 4px; border-radius: 6px;
+    font-size: 13px; color: var(--text);
+  }
+  .groupScript:hover { background: var(--hover); }
+  .groupScript input { accent-color: var(--accent); }
+  .groupRow {
+    display: flex; align-items: center; gap: 8px;
+    padding: 7px 8px; margin: 0 0 6px;
+    border: 1px solid var(--line); border-radius: 9px;
+    background: var(--panel2);
+  }
+  .groupRow b { font-size: 13.5px; }
+  .groupRow .spacer { flex: 1 1 auto; }
+  .groupRow button { padding: 5px 9px; font-size: 12.5px; }
+  .groupRow.active { border-color: var(--on); box-shadow: 0 0 0 1px #43d17f33; }
+  .groups .row { margin-bottom: 8px; }
   #edText {
     width: 100%; min-height: 220px; margin-top: 10px;
     font: 12.5px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -576,6 +603,33 @@ try {
   </section>
 </main>
 
+<details class="card groups" id="groupsCard">
+  <summary>Groups</summary>
+  <div class="row" style="margin-top:10px">
+    <label class="field">name
+      <input id="groupName" placeholder="group name" size="16">
+    </label>
+    <label class="field">seconds
+      <input id="groupSeconds" type="number" min="5" value="30" style="width:5.2em">
+    </label>
+    <button class="primary" onclick="saveGroup()">Save group</button>
+    <button onclick="newGroup()">New</button>
+    <span class="spacer"></span>
+    <button onclick="stopGroup()">Stop rotation</button>
+  </div>
+  <div class="row">
+    <label class="field">find
+      <input id="groupSearch" type="search" placeholder="filter scripts"
+             size="18" autocomplete="off" spellcheck="false">
+    </label>
+    <span class="hint" id="groupCount"></span>
+    <span class="spacer"></span>
+    <span class="hint" id="groupActive"></span>
+  </div>
+  <div class="groupScripts" id="groupScripts"></div>
+  <div class="groupList" id="groupList"></div>
+</details>
+
 <details class="card editor">
   <summary>Script editor</summary>
   <div class="row" style="margin-top:10px">
@@ -613,6 +667,9 @@ var bootToggle = document.getElementById("bootToggle");
 var bootCombo = document.getElementById("bootCombo");
 var bootItems = [];
 var bootIndex = -1;
+var groupPicked = {};
+var groupScriptKey = "";
+var groupScriptEls = [];
 var boardMap = {"microdot-phat": "microdot-phat",
                 "unicorn phat": "unicorn-phat",
                 "unicorn phat 8x4": "unicorn-phat",
@@ -668,6 +725,7 @@ async function refresh() {
 
   renderTabs();
   renderChips();
+  renderGroups();
 
   var shape = shapeOf(state.attached);
   rebuildDrawGrid(shape);
@@ -696,7 +754,7 @@ function renderTabs() {
     var b = document.createElement("button");
     b.className = "tab" + (t === board ? " on" : "");
     b.textContent = tabLabel[t] || t;
-    b.onclick = function () { board = t; renderTabs(); renderChips(); };
+    b.onclick = function () { board = t; renderTabs(); renderChips(); renderGroups(); };
     nav.appendChild(b);
   });
 }
@@ -828,11 +886,154 @@ function renderChips() {
   document.getElementById("ver").textContent = "xpi v" + (state.version || "");
 }
 
+function groupSearchQuery() {
+  return (document.getElementById("groupSearch").value || "").trim().toLowerCase();
+}
+
+function buildGroupScripts() {
+  var key = board + "\n" + (state.scripts || []).join("\n");
+  if (key === groupScriptKey) return;
+  groupScriptKey = key;
+  var box = document.getElementById("groupScripts");
+  box.innerHTML = "";
+  groupScriptEls = [];
+  (state.scripts || []).forEach(function (name) {
+    if (!matches(boardOf((state.boards || {})[name]))) return;
+    var label = document.createElement("label");
+    label.className = "groupScript";
+    var input = document.createElement("input");
+    input.type = "checkbox";
+    input.value = name;
+    input.checked = !!groupPicked[name];
+    input.addEventListener("change", function () {
+      groupPicked[name] = input.checked;
+    });
+    label.appendChild(input);
+    label.appendChild(document.createTextNode(name));
+    box.appendChild(label);
+    groupScriptEls.push({name: name, label: label, input: input});
+  });
+}
+
+function applyGroupFilter() {
+  var query = groupSearchQuery();
+  var shown = 0;
+  groupScriptEls.forEach(function (item) {
+    var match = !query || item.name.toLowerCase().indexOf(query) >= 0;
+    item.label.hidden = !match;
+    if (match) shown++;
+  });
+  document.getElementById("groupCount").textContent =
+    query ? (shown + " of " + groupScriptEls.length + " scripts") : "";
+}
+
+function syncGroupChecks() {
+  groupScriptEls.forEach(function (item) {
+    item.input.checked = !!groupPicked[item.name];
+  });
+}
+
+function groupByName(name) {
+  var groups = Array.isArray(state.groups) ? state.groups : [];
+  return groups.filter(function (g) { return g.name === name; })[0];
+}
+
+function renderGroups() {
+  if (!state) return;
+  buildGroupScripts();
+  applyGroupFilter();
+  var list = document.getElementById("groupList");
+  var groups = Array.isArray(state.groups) ? state.groups : [];
+  list.innerHTML = "";
+  if (!groups.length) {
+    var empty = document.createElement("p");
+    empty.className = "hint";
+    empty.textContent = "no groups yet";
+    list.appendChild(empty);
+  }
+  groups.forEach(function (group) {
+    var row = document.createElement("div");
+    row.className = "groupRow"
+      + (group.name === state.active_group ? " active" : "");
+    var name = document.createElement("b");
+    name.textContent = group.name;
+    row.appendChild(name);
+    var info = document.createElement("span");
+    info.className = "hint";
+    info.textContent = (group.scripts || []).length + " scripts · "
+      + (group.seconds || 60) + "s";
+    row.appendChild(info);
+    var spacer = document.createElement("span");
+    spacer.className = "spacer";
+    row.appendChild(spacer);
+    var start = document.createElement("button");
+    start.textContent = group.name === state.active_group ? "Restart" : "Start";
+    start.addEventListener("click", function () { startGroup(group.name); });
+    row.appendChild(start);
+    var edit = document.createElement("button");
+    edit.textContent = "Edit";
+    edit.addEventListener("click", function () { editGroup(group.name); });
+    row.appendChild(edit);
+    var del = document.createElement("button");
+    del.textContent = "Delete";
+    del.addEventListener("click", function () { deleteGroup(group.name); });
+    row.appendChild(del);
+    list.appendChild(row);
+  });
+  document.getElementById("groupActive").textContent = state.active_group
+    ? "active: " + state.active_group : "not rotating";
+}
+
+function newGroup() {
+  document.getElementById("groupName").value = "";
+  document.getElementById("groupSeconds").value = 30;
+  groupPicked = {};
+  syncGroupChecks();
+}
+
+function editGroup(name) {
+  var group = groupByName(name);
+  if (!group) return;
+  document.getElementById("groupName").value = group.name;
+  document.getElementById("groupSeconds").value = group.seconds || 60;
+  groupPicked = {};
+  (group.scripts || []).forEach(function (script) { groupPicked[script] = true; });
+  syncGroupChecks();
+  document.getElementById("groupsCard").open = true;
+}
+
+function saveGroup() {
+  var name = document.getElementById("groupName").value.trim();
+  var seconds = document.getElementById("groupSeconds").value;
+  var available = {};
+  groupScriptEls.forEach(function (item) { available[item.name] = true; });
+  var scripts = Object.keys(groupPicked).filter(function (n) {
+    return groupPicked[n] && available[n];
+  });
+  if (!name) { alert("name the group"); return; }
+  if (!scripts.length) { alert("pick at least one script"); return; }
+  act('savegroup', 'name=' + encodeURIComponent(name)
+      + '&scripts=' + encodeURIComponent(scripts.join(','))
+      + '&seconds=' + encodeURIComponent(seconds));
+}
+
+function startGroup(name) {
+  act('playgroup', 'name=' + encodeURIComponent(name));
+}
+
+function stopGroup() {
+  act('stopgroup');
+}
+
+function deleteGroup(name) {
+  if (!confirm('delete group "' + name + '"?')) return;
+  act('delgroup', 'name=' + encodeURIComponent(name));
+}
+
 function fillEditorList() {
   var ed = document.getElementById("edList");
   var currentVal = ed.value;
-  ed.innerHTML = "";
-  (state.scripts || []).filter(function (n) { return n !== "draw"; })
+  ed.innerHTML = "";  (state.scripts || []).filter(function (n) { return n !== "draw"; })
     .forEach(function (stem) {
       var opt = document.createElement("option");
       opt.value = stem; opt.textContent = stem + ".py";
@@ -1687,6 +1888,10 @@ function send() {
 /* Filtering happens on input so the chips change as you type. */
 scriptSearch.addEventListener("input", function () {
   renderChips();
+});
+
+document.getElementById("groupSearch").addEventListener("input", function () {
+  applyGroupFilter();
 });
 
 /* The boot box is a combobox: type to filter, arrows to move, Enter to pick. */

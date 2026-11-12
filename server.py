@@ -366,17 +366,26 @@ def reset_playlist():
     _playlist_last = 0.0
 
 
+def current_rotation(config):
+    """Scripts and seconds for the active group, or the old playlist."""
+    active = config.get("active_group")
+    for group in config.get("groups") or []:
+        if isinstance(group, dict) and group.get("name") == active:
+            return group.get("scripts") or [], group.get("seconds") or 60
+    return config.get("playlist") or [], config.get("playlist_seconds") or 60
+
+
 def playlist_loop():
-    """Rotate through config.json's playlist every playlist_seconds."""
+    """Rotate through the active group or playlist."""
     global _playlist_index, _playlist_last
     while True:
         time.sleep(1)
         config = read_config()
-        names = config.get("playlist") or []
+        names, raw_seconds = current_rotation(config)
         if not names:
             continue
         try:
-            seconds = max(5, int(config.get("playlist_seconds") or 60))
+            seconds = max(5, int(raw_seconds))
         except (TypeError, ValueError):
             seconds = 60
         now = time.time()
@@ -429,6 +438,7 @@ def detect_device():
 
 def status():
     child = running_child()
+    config = read_config()
     started = None
     if _child_started is not None:
         started = datetime.datetime.fromtimestamp(
@@ -438,13 +448,15 @@ def status():
         "hostname": os.uname().nodename,
         "ip": local_ip(),
         "version": VERSION,
-        "playlist": read_config().get("playlist") or [],
-        "playlist_seconds": read_config().get("playlist_seconds") or 60,
-        "token": bool(read_config().get("token")),
+        "playlist": config.get("playlist") or [],
+        "playlist_seconds": config.get("playlist_seconds") or 60,
+        "groups": config.get("groups") or [],
+        "active_group": config.get("active_group"),
+        "token": bool(config.get("token")),
         "running": current_stem(child),
         "pid": child.pid if child else None,
         "started": started,
-        "boot": read_config().get("boot"),
+        "boot": config.get("boot"),
         "scripts": sorted(SCRIPT_REGISTRY),
         "boards": BOARD_TAGS,
         "revision": _read_state().get("revision"),
@@ -520,6 +532,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             if action not in ("savescript", "savedrawing", "restore"):
                 self._drain_body()
             if action in ("stop", "boot", "savescript", "delscript", "playlist",
+                          "savegroup", "delgroup", "playgroup", "stopgroup",
                           "savedrawing", "backup", "restore") \
                     and not self.authorized(params):
                 self.respond(401, {"error": "token required"})
@@ -546,6 +559,14 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 self.act_delscript(params)
             elif action == "playlist":
                 self.act_playlist(params)
+            elif action == "savegroup":
+                self.act_savegroup(params)
+            elif action == "delgroup":
+                self.act_delgroup(params)
+            elif action == "playgroup":
+                self.act_playgroup(params)
+            elif action == "stopgroup":
+                self.act_stopgroup()
             elif action == "savedrawing":
                 self.act_savedrawing(params)
             elif action == "backup":
@@ -726,9 +747,82 @@ class Handler(http.server.BaseHTTPRequestHandler):
         config = read_config()
         config["playlist"] = names
         config["playlist_seconds"] = seconds
+        config["active_group"] = None
         write_config(config)
         reset_playlist()
         self.respond(200, {"ok": True, "playlist": names, "seconds": seconds})
+
+    def act_savegroup(self, params):
+        name = (params.pop("name", [""])[0] or "").strip()
+        raw = (params.pop("scripts", [""])[0] or "").strip()
+        names = []
+        for item in raw.split(","):
+            item = item.strip()
+            if item and item not in names:
+                names.append(item)
+        if not name or len(name) > 60:
+            return self.respond(400, {"error": "group name required"})
+        if not names:
+            return self.respond(400, {"error": "scripts required"})
+        for script in names:
+            if script not in SCRIPT_REGISTRY:
+                return self.respond(404, {"error": "unknown script",
+                                          "script": script})
+        try:
+            seconds = max(5, int(params.pop("seconds", ["60"])[0]))
+        except (TypeError, ValueError):
+            seconds = 60
+        config = read_config()
+        groups = [g for g in (config.get("groups") or [])
+                  if isinstance(g, dict) and g.get("name") != name]
+        group = {"name": name, "scripts": names, "seconds": seconds}
+        groups.append(group)
+        config["groups"] = groups
+        write_config(config)
+        reset_playlist()
+        self.respond(200, {"ok": True, "group": group})
+
+    def act_delgroup(self, params):
+        name = (params.pop("name", [""])[0] or "").strip()
+        if not name:
+            return self.respond(400, {"error": "group name required"})
+        config = read_config()
+        config["groups"] = [g for g in (config.get("groups") or [])
+                            if isinstance(g, dict) and g.get("name") != name]
+        if config.get("active_group") == name:
+            config["active_group"] = None
+        write_config(config)
+        reset_playlist()
+        self.respond(200, {"ok": True, "name": name})
+
+    def act_playgroup(self, params):
+        name = (params.pop("name", [""])[0] or "").strip()
+        if not name:
+            return self.respond(400, {"error": "group name required"})
+        config = read_config()
+        group = None
+        for item in config.get("groups") or []:
+            if isinstance(item, dict) and item.get("name") == name:
+                group = item
+                break
+        if group is None:
+            return self.respond(404, {"error": "unknown group", "name": name})
+        if not group.get("scripts"):
+            return self.respond(400, {"error": "group has no scripts",
+                                      "name": name})
+        config["active_group"] = name
+        config["playlist"] = []
+        write_config(config)
+        reset_playlist()
+        self.respond(200, {"ok": True, "active_group": name,
+                           "group": group})
+
+    def act_stopgroup(self):
+        config = read_config()
+        config["active_group"] = None
+        write_config(config)
+        reset_playlist()
+        self.respond(200, {"ok": True, "active_group": None})
 
     def act_savedrawing(self, params):
         stem = (params.pop("script", [None])[0] or "").strip()
