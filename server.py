@@ -9,6 +9,7 @@ import hmac
 import http.server
 import json
 import os
+import re
 import signal
 import socket
 import subprocess
@@ -452,6 +453,11 @@ def status():
         "playlist_seconds": config.get("playlist_seconds") or 60,
         "groups": config.get("groups") or [],
         "active_group": config.get("active_group"),
+        "ntfy": {
+            "url": (config.get("ntfy") or {}).get("url") or "https://ntfy.sh",
+            "topic": (config.get("ntfy") or {}).get("topic") or "",
+            "token_set": bool((config.get("ntfy") or {}).get("token")),
+        },
         "token": bool(config.get("token")),
         "running": current_stem(child),
         "pid": child.pid if child else None,
@@ -533,7 +539,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 self._drain_body()
             if action in ("stop", "boot", "savescript", "delscript", "playlist",
                           "savegroup", "delgroup", "playgroup", "stopgroup",
-                          "savedrawing", "backup", "restore") \
+                          "saventfy", "savedrawing", "backup", "restore") \
                     and not self.authorized(params):
                 self.respond(401, {"error": "token required"})
                 return
@@ -567,6 +573,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 self.act_playgroup(params)
             elif action == "stopgroup":
                 self.act_stopgroup()
+            elif action == "saventfy":
+                self.act_saventfy(params)
             elif action == "savedrawing":
                 self.act_savedrawing(params)
             elif action == "backup":
@@ -823,6 +831,42 @@ class Handler(http.server.BaseHTTPRequestHandler):
         write_config(config)
         reset_playlist()
         self.respond(200, {"ok": True, "active_group": None})
+
+    def act_saventfy(self, params):
+        url = (params.pop("url", ["https://ntfy.sh"])[0] or "").strip()
+        url = url or "https://ntfy.sh"
+        if "://" not in url:
+            url = "https://" + url
+        parsed = urllib.parse.urlparse(url)
+        if parsed.scheme not in ("http", "https") or not parsed.netloc:
+            return self.respond(400, {"error": "bad ntfy url"})
+        url = url.rstrip("/")
+        topic = (params.pop("topic", [""])[0] or "").strip()
+        if not re.fullmatch(r"[-_A-Za-z0-9.]{1,64}", topic):
+            return self.respond(400, {"error": "bad ntfy topic"})
+        token = (params.pop("token", [""])[0] or "").strip()
+        start = (params.pop("start", ["0"])[0] or "").lower() \
+            in ("1", "true", "yes")
+        config = read_config()
+        ntfy = config.get("ntfy") or {}
+        ntfy["url"] = url
+        ntfy["topic"] = topic
+        if token == "-":
+            ntfy.pop("token", None)
+        elif token:
+            ntfy["token"] = token
+        config["ntfy"] = ntfy
+        if start:
+            config["active_group"] = None
+        write_config(config)
+        started = False
+        if start and "ntfy" in SCRIPT_REGISTRY:
+            reset_playlist()
+            start_child("ntfy")
+            started = True
+        self.respond(200, {"ok": True, "started": started,
+                           "ntfy": {"url": url, "topic": topic,
+                                    "token_set": bool(ntfy.get("token"))}})
 
     def act_savedrawing(self, params):
         stem = (params.pop("script", [None])[0] or "").strip()
