@@ -180,7 +180,7 @@ try {
   button.ghost { background: transparent; }
   button:disabled { opacity: .45; cursor: default; }
 
-  select, input[type=text], input[type=number], input:not([type]), textarea {
+  select, input[type=text], input[type=search], input[type=number], input:not([type]), textarea {
     font: inherit; font-size: 13.5px;
     padding: 7px 9px;
     border-radius: 9px;
@@ -191,6 +191,7 @@ try {
   }
   #msg { flex: 1 1 7rem; width: auto; }
   #secs { flex: 0 1 5rem; }
+  #scriptSearch { flex: 0 1 16rem; }
   select:focus, input:focus, textarea:focus { outline: 2px solid #2f8fc0; outline-offset: 1px; }
   input::placeholder { color: #5f6c7b; }
 
@@ -441,6 +442,15 @@ try {
       <label class="field"><input id="msgFade" type="checkbox"> fade</label>
     </div>
 
+    <div class="row">
+      <label class="field">find
+        <input id="scriptSearch" type="search" placeholder="filter scripts"
+               size="18" autocomplete="off" spellcheck="false">
+      </label>
+      <span class="hint" id="scriptCount"></span>
+      <span class="hint">filters boot and scripts</span>
+    </div>
+
     <div class="tabs" id="boards"></div>
     <div class="chips" id="grid"></div>
     <p class="logline" id="log">last output: (none)</p>
@@ -541,6 +551,8 @@ try {
 "use strict";
 var state = null, board = "all", firstRefresh = true, seeded = false;
 var pendingScript = null;
+var scriptSearch = document.getElementById("scriptSearch");
+var bootKey = "";
 var boardMap = {"microdot-phat": "microdot-phat",
                 "unicorn phat": "unicorn-phat",
                 "unicorn phat 8x4": "unicorn-phat",
@@ -565,6 +577,14 @@ function tabFor(attached) {
   return null;
 }
 
+function searchQuery() {
+  return (scriptSearch.value || "").trim().toLowerCase();
+}
+
+function scriptMatches(name, query) {
+  return !query || name.toLowerCase().indexOf(query) >= 0;
+}
+
 /* ------------------------------------------------------------ refresh --- */
 
 async function refresh() {
@@ -584,16 +604,7 @@ async function refresh() {
   var wantTab = tabFor(state.attached);
   if (wantTab && firstRefresh) { board = wantTab; firstRefresh = false; }
 
-  var sel = document.getElementById('boot');
-  if (!sel.options.length) {
-    var none = document.createElement('option');
-    none.value = 'none'; none.textContent = '(nothing)';
-    sel.appendChild(none);
-    (state.scripts || []).forEach(function (n) {
-      var opt = document.createElement('option');
-      opt.value = n; opt.textContent = n; sel.appendChild(opt); });
-  }
-  sel.value = state.boot || 'none';
+  fillBootSelect();
 
   renderTabs();
   renderChips();
@@ -629,13 +640,54 @@ function renderTabs() {
   });
 }
 
+function fillBootSelect() {
+  if (!state) return;
+  var sel = document.getElementById("boot");
+  var query = searchQuery();
+  var current = state.boot || "none";
+  var names = state.scripts || [];
+  var key = query + "\n" + current + "\n" + names.join("\n");
+  if (key === bootKey) return;
+  bootKey = key;
+
+  sel.innerHTML = "";
+  var none = document.createElement("option");
+  none.value = "none";
+  none.textContent = "(nothing)";
+  sel.appendChild(none);
+
+  var shown = names.filter(function (name) {
+    return scriptMatches(name, query);
+  });
+
+  if (current !== "none" && shown.indexOf(current) < 0) {
+    var keep = document.createElement("option");
+    keep.value = current;
+    keep.textContent = current + " (current)";
+    sel.appendChild(keep);
+  }
+  shown.forEach(function (name) {
+    var opt = document.createElement("option");
+    opt.value = name;
+    opt.textContent = name;
+    sel.appendChild(opt);
+  });
+  sel.value = current;
+}
+
 function renderChips() {
   if (!state) return;
   var grid = document.getElementById("grid");
+  var count = document.getElementById("scriptCount");
+  var query = searchQuery();
+  var total = 0, shown = 0;
   grid.innerHTML = "";
   (state.scripts || []).forEach(function (n) {
     var tag = boardOf((state.boards || {})[n]);
     if (!matches(tag)) return;
+    total++;
+    if (!scriptMatches(n, query)) return;
+    shown++;
     var b = document.createElement("button");
     b.className = "chip" + (n === state.running ? " running" : "")
       + (n === pendingScript ? " pending" : "");
@@ -648,6 +700,13 @@ function renderChips() {
     b.onclick = function () { act("switch", "script=" + encodeURIComponent(n), n); };
     grid.appendChild(b);
   });
+  count.textContent = query ? (shown + " of " + total + " scripts") : "";
+  if (!shown && total) {
+    var empty = document.createElement("span");
+    empty.className = "hint";
+    empty.textContent = "no scripts match";
+    grid.appendChild(empty);
+  }
   var log = document.getElementById("log");
   var tail = (state.log || "").trim().split("\n").filter(Boolean).pop() || "(none)";
   log.textContent = "last output: " + tail;
@@ -1450,6 +1509,12 @@ function send() {
   document.getElementById('secs').value = '';
   return false;
 }
+
+/* Filtering happens on input so the boot list and chips change together. */
+scriptSearch.addEventListener("input", function () {
+  fillBootSelect();
+  renderChips();
+});
 
 /* Rebuilding the canvas at a new size keeps the LEDs on screen after a resize. */
 var resizeTimer = null;
