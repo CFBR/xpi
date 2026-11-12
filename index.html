@@ -704,6 +704,7 @@ try {
 "use strict";
 var state = null, board = "all", firstRefresh = true, seeded = false;
 var liveFrame = null, liveFrameKey = "";
+var refreshSeq = 0;
 var pendingScript = null;
 var scriptSearch = document.getElementById("scriptSearch");
 var bootInput = document.getElementById("boot");
@@ -750,9 +751,14 @@ function scriptMatches(name, query) {
 /* ------------------------------------------------------------ refresh --- */
 
 async function refresh() {
-  try { state = await (await fetch('/action=status')).json(); } catch (e) { return; }
+  var seq = ++refreshSeq;
+  var status;
+  try { status = await (await fetch('/action=status')).json(); } catch (e) { return; }
   var design = {};
   try { design = await (await fetch('/action=state')).json() || {}; } catch (e) {}
+  if (seq !== refreshSeq) return;
+  if (!status || typeof status !== "object") return;
+  state = status;
 
   document.getElementById('pHost').textContent = state.hostname || 'pi';
   document.getElementById('pIp').textContent = state.ip || 'unknown';

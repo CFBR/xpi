@@ -208,9 +208,13 @@ def _board_from_dir(directory):
 
 
 def scan_scripts():
-    """Registry keyed by filename stem; first scan-dir occurrence wins."""
+    """Return (registry, board tags) keyed by filename stem.
+
+    The first scan-dir occurrence wins. Builds new dicts so a refresh can
+    swap them in without a reader ever seeing a half-filled registry.
+    """
     registry = {}
-    BOARD_TAGS.clear()
+    tags = {}
     for directory in SCAN_DIRS:
         if not os.path.isdir(directory):
             continue
@@ -226,14 +230,32 @@ def scan_scripts():
             tag = _board_from_dir(directory)
             if tag == "generic":
                 tag = _board_from_source(registry[stem])
-            BOARD_TAGS[stem] = tag
-    return registry
+            tags[stem] = tag
+    return registry, tags
 
 
 BOARD_TAGS = {}
-
-
 SCRIPT_REGISTRY = {}
+_registry_lock = threading.Lock()
+_registry_last = 0.0
+
+
+def refresh_registry(force=False):
+    """Rebuild the script list at most every two seconds, atomically."""
+    global SCRIPT_REGISTRY, BOARD_TAGS, _registry_last
+    now = time.monotonic()
+    with _registry_lock:
+        if not force and now - _registry_last < 2.0:
+            return
+        registry, tags = scan_scripts()
+        SCRIPT_REGISTRY = registry
+        BOARD_TAGS = tags
+        _registry_last = now
+
+
+def registry_snapshot():
+    with _registry_lock:
+        return SCRIPT_REGISTRY, BOARD_TAGS
 _child = None
 _child_args = []
 _child_started = None
@@ -421,8 +443,7 @@ def playlist_loop():
         if _playlist_last and now - _playlist_last < seconds:
             continue
         name = names[_playlist_index % len(names)]
-        SCRIPT_REGISTRY.clear()
-        SCRIPT_REGISTRY.update(scan_scripts())
+        refresh_registry()
         if name in SCRIPT_REGISTRY:
             try:
                 start_child(name)
@@ -468,6 +489,7 @@ def detect_device():
 def status():
     child = running_child()
     config = read_config()
+    registry, tags = registry_snapshot()
     started = None
     if _child_started is not None:
         started = datetime.datetime.fromtimestamp(
@@ -491,8 +513,8 @@ def status():
         "pid": child.pid if child else None,
         "started": started,
         "boot": config.get("boot"),
-        "scripts": sorted(SCRIPT_REGISTRY),
-        "boards": BOARD_TAGS,
+        "scripts": sorted(registry),
+        "boards": tags,
         "revision": _read_state().get("revision"),
         "log": log_text(),
     }
@@ -555,8 +577,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
                     and "application/json" not in accept:
                 self.serve_index()
                 return
-            SCRIPT_REGISTRY.clear()
-            SCRIPT_REGISTRY.update(scan_scripts())
+            if action and action not in ("frame", "state"):
+                refresh_registry()
             if not action:
                 if path in ("/", "/index.html"):
                     self.serve_index()
@@ -763,6 +785,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         except OSError as exc:
             return self.respond(500, {"error": str(exc)})
         print("server: saved script %s (%d bytes)" % (path, len(text)))
+        refresh_registry(force=True)
         self.respond(200, {"ok": True, "script": os.path.basename(path)})
 
     def act_delscript(self, params):
@@ -779,6 +802,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         except OSError as exc:
             return self.respond(500, {"error": str(exc)})
         print("server: deleted script %s" % path)
+        refresh_registry(force=True)
         self.respond(200, {"ok": True, "script": os.path.basename(path)})
 
 
@@ -951,6 +975,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         except OSError as exc:
             return self.respond(500, {"error": str(exc)})
         print("server: saved drawing %s (%d pixels)" % (path, len(clean)))
+        refresh_registry(force=True)
         self.respond(200, {"ok": True, "script": os.path.basename(path),
                            "pixels": len(clean)})
 
@@ -1001,6 +1026,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         config = data.get("config")
         if isinstance(config, dict):
             write_config(config)
+        refresh_registry(force=True)
         self.respond(200, {"ok": True, "scripts": written})
 
     # --------------------------------------------------------------- out --
@@ -1028,14 +1054,13 @@ class Server(http.server.ThreadingHTTPServer):
 
 
 def main():
-    global SCRIPT_REGISTRY
     parser = argparse.ArgumentParser(
         description="xpi display control webserver (stdlib only)")
     parser.add_argument("--port", type=int, default=80)
     parser.add_argument("--bind", default="0.0.0.0")
     args = parser.parse_args()
 
-    SCRIPT_REGISTRY.update(scan_scripts())
+    refresh_registry(force=True)
     boot = read_config().get("boot")
     if boot:
         if boot in SCRIPT_REGISTRY:
