@@ -24,6 +24,10 @@ Quote the whole URL in a shell, because `?` and `&` are shell metacharacters.
 | `?action=clear` | Kill the script and blank the board |
 | `?action=boot&script=<name>` | Set the script that starts with the service. `none` unsets it |
 | `?action=playlist&scripts=a,b&seconds=60` | Rotate scripts every N seconds. Empty `scripts` clears it |
+| `?action=savegroup&name=<name>&scripts=a,b&seconds=60` | Create or replace a named rotation group |
+| `?action=delgroup&name=<name>` | Delete a group |
+| `?action=playgroup&name=<name>` | Rotate through a saved group |
+| `?action=stopgroup` | Stop group rotation |
 | `?action=status` | Attached board, running script, pid, boot, scripts, boards, ip, revision, log. `?action=scripts` is an alias |
 | `?action=state` | The current `state.json` |
 | `?action=getscript&script=<name>` | The script's source, as `{"script": ..., "code": ...}` |
@@ -68,6 +72,11 @@ Scripts stay live without a restart by polling `revision()` from
 `speed` divides the delay in `time.sleep`, for any script, including the
 untouched Pimoroni examples.
 
+A group is a named script list with its own seconds. `playgroup` sets it
+active, and the server rotates through it in order. `stopgroup` clears the
+active group and leaves the current script running. A group overrides the
+older `playlist` keys until it is stopped.
+
 ## Colors
 
 Names: `red`, `green`, `blue`, `white`, `yellow`, `orange`, `purple`,
@@ -96,8 +105,8 @@ stop:
 {"boot": "clock", "token": "your-secret"}
 ```
 
-Guarded: `stop`, `boot`, `playlist`, `savescript`, `delscript`, `savedrawing`,
-`backup` and `restore`. Send it as `?token=...` or in an `X-XPI-Token` header.
+Guarded: `stop`, `boot`, `playlist`, `savegroup`, `delgroup`, `playgroup`,
+`stopgroup`, `savescript`, `delscript`, `savedrawing`, `backup` and `restore`. Send it as `?token=...` or in an `X-XPI-Token` header.
 The page asks once and keeps it in the browser. Leave it null for an open box
 on your own network.
 
@@ -106,7 +115,7 @@ on your own network.
 `?action=backup` returns one JSON object:
 
 ```json
-{"version": "2.1.0", "config": {}, "state": {}, "scripts": {"rain.py": "..."}}
+{"version": "2.2.0", "config": {}, "state": {}, "scripts": {"rain.py": "..."}}
 ```
 
 POST it back to `?action=restore` to write the scripts and config in. Useful
