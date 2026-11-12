@@ -12,6 +12,7 @@ load.
 | `timer` | Countdown from `state.json` `seconds` |
 | `hostname` | Scrolls the Pi's hostname on either board |
 | `ip` | Scrolls hostname and LAN address on either board |
+| `github-commits` | Total commits for a GitHub user or repo, refreshed every minute |
 | `unicorn_message` | Scrolling text in color on a Unicorn board |
 | `draw` | Paints a pixel list pushed from the draw panel |
 | `image` | Shows an image file, or cycles a folder of them, on a Unicorn board |
