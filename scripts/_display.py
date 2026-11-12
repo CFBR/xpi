@@ -87,6 +87,25 @@ def brightness_value(default=0.5):
         return default
 
 
+def format_count(value):
+    """Short count for a small display: 1234, 1.2M, 12B."""
+    try:
+        value = max(0, int(value))
+    except (TypeError, ValueError):
+        return "0"
+    if value < 1000000:
+        return str(value)
+    if value < 100000000:
+        return ("%.1fM" % (value / 1000000.0)).replace(".0M", "M")
+    if value < 1000000000:
+        return "%dM" % round(value / 1000000.0)
+    if value < 100000000000:
+        return ("%.1fB" % (value / 1000000000.0)).replace(".0B", "B")
+    if value < 1000000000000:
+        return "%dB" % round(value / 1000000000.0)
+    return ("%.1fT" % (value / 1000000000000.0)).replace(".0T", "T")
+
+
 def setup_unicorn(layout=None):
     """Initialize unicornhat, honoring the *real* board layout.
 
