@@ -16,10 +16,15 @@ load.
 | `draw` | Paints a pixel list pushed from the draw panel |
 | `image` | Shows an image file, or cycles a folder of them, on a Unicorn board |
 | `solid` | Fills the board with `color`, useful as a lamp or pixel test |
+| `snake` | Lit snakes crawl down and up the Micro Dot pHAT columns with dark gaps between them |
 | `clear` | Blanks the attached board |
 
 `_display.py`, `_net.py` and `_xpi_state.py` are helpers imported by those
 scripts. The leading `_` keeps them out of the run list.
+
+`snake` follows the page speed slider like every script. `LENGTH`, `GAP` and
+`FRAME` at the top of `snake.py` change the snake size, the space between them
+and the default pace.
 
 ## Adding a script
 

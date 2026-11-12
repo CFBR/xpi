@@ -1200,6 +1200,20 @@ function renderPreview(designState) {
     for (var sy = 0; sy < shape.r; sy++)
       for (var sx = 0; sx < shape.c; sx++) cells[sy * shape.c + sx] = textColor;
     note.textContent = "solid " + (designState.color || "white");
+  } else if (runningScript === "snake") {
+    var snakePath = [];
+    var visCols = Math.floor((shape.c + 3) / 8) * 5;
+    for (var nx = 0; nx < visCols; nx++) {
+      var bx = Math.floor(nx / 5) * 8 + nx % 5;
+      for (var ny = 0; ny < shape.r; ny++)
+        snakePath.push([bx, nx % 2 ? shape.r - 1 - ny : ny]);
+    }
+    var period = 42, phase = Math.floor(Date.now() / 120) % period;
+    for (var ni = 0; ni < snakePath.length; ni++) {
+      if ((ni - phase + period) % period < 8)
+        cells[snakePath[ni][1] * shape.c + snakePath[ni][0]] = textColor;
+    }
+    note.textContent = "snakes crawling the LEDs";
   } else if (runningScript) {
     note.textContent = "'" + runningScript + "' drives the hardware, no preview";
   } else {
