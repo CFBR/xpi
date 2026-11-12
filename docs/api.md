@@ -129,7 +129,7 @@ on your own network.
 `?action=backup` returns one JSON object:
 
 ```json
-{"version": "2.3.1", "config": {}, "state": {}, "scripts": {"rain.py": "..."}}
+{"version": "2.3.2", "config": {}, "state": {}, "scripts": {"rain.py": "..."}}
 ```
 
 POST it back to `?action=restore` to write the scripts and config in. Useful
