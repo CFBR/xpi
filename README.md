@@ -1,5 +1,7 @@
 # xpi
 
+<img src="assets/icon-192.png" alt="xpi icon" width="96" align="right">
+
 One web page for the LED displays on a Raspberry Pi. Pick a script, send a
 message, draw on the grid, set the brightness, and the board follows. xpi
 starts on boot and needs no app, no account, and no internet: any browser on
