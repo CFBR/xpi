@@ -474,6 +474,15 @@ try {
       <span class="hint" id="densityVal">1.00x</span>
       <span class="hint">raindrop and rainfall</span>
     </div>
+    <div class="row">
+      <label class="field">snake
+        <select id="snakePath">
+          <option value="down">down</option>
+          <option value="sideways">sideways</option>
+        </select>
+      </label>
+      <span class="hint">down columns, or right to left across rows</span>
+    </div>
 
     <div class="divider"></div>
 
@@ -594,6 +603,7 @@ async function refresh() {
   syncBrightness(design);
   syncSpeed(design);
   syncDensity(design);
+  syncSnakePath(design);
   fillEditorList();
 
   if (!seeded) seeded = true;
@@ -989,6 +999,17 @@ densityInput.addEventListener("change", function () {
   act('update', 'density=' + (densityInput.value / 100).toFixed(2));
 });
 
+var snakePathInput = document.getElementById("snakePath");
+
+function syncSnakePath(design) {
+  snakePathInput.value = design && design.snake_path === "sideways"
+    ? "sideways" : "down";
+}
+
+snakePathInput.addEventListener("change", function () {
+  act('update', 'snake_path=' + snakePathInput.value);
+});
+
 brightInput.addEventListener("input", function () {
   brightDragging = true;
   document.getElementById("brightVal").textContent = brightInput.value + "%";
@@ -1203,10 +1224,19 @@ function renderPreview(designState) {
   } else if (runningScript === "snake") {
     var snakePath = [];
     var visCols = Math.floor((shape.c + 3) / 8) * 5;
-    for (var nx = 0; nx < visCols; nx++) {
-      var bx = Math.floor(nx / 5) * 8 + nx % 5;
-      for (var ny = 0; ny < shape.r; ny++)
-        snakePath.push([bx, nx % 2 ? shape.r - 1 - ny : ny]);
+    if (designState && designState.snake_path === "sideways") {
+      for (var ny = 0; ny < shape.r; ny++) {
+        for (var nx = 0; nx < visCols; nx++) {
+          var px = ny % 2 ? nx : visCols - 1 - nx;
+          snakePath.push([Math.floor(px / 5) * 8 + px % 5, ny]);
+        }
+      }
+    } else {
+      for (var nx = 0; nx < visCols; nx++) {
+        var bx = Math.floor(nx / 5) * 8 + nx % 5;
+        for (var ny = 0; ny < shape.r; ny++)
+          snakePath.push([bx, nx % 2 ? shape.r - 1 - ny : ny]);
+      }
     }
     var period = 42, phase = Math.floor(Date.now() / 120) % period;
     for (var ni = 0; ni < snakePath.length; ni++) {
