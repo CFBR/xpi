@@ -538,6 +538,12 @@ try {
     </div>
 
     <div class="row">
+      <label class="field">effect
+        <select id="msgEffect">
+          <option value="message">message</option>
+          <option value="decrypt-text">decrypt</option>
+        </select>
+      </label>
       <label class="field">direction
         <select id="msgDir">
           <option value="left">left</option>
@@ -2001,7 +2007,8 @@ function send() {
   var t = document.getElementById('msg').value;
   var s = document.getElementById('secs').value;
   if (t) {
-    var script = messageScript();
+    var effect = document.getElementById('msgEffect').value;
+    var script = effect === 'decrypt-text' ? 'decrypt-text' : messageScript();
     var extra = 'script=' + script + '&message=' + encodeURIComponent(t)
       + '&direction=' + document.getElementById('msgDir').value
       + '&mode=' + document.getElementById('msgMode').value
