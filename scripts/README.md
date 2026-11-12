@@ -17,10 +17,24 @@ load.
 | `image` | Shows an image file, or cycles a folder of them, on a Unicorn board |
 | `solid` | Fills the board with `color`, useful as a lamp or pixel test |
 | `snake` | Lit snakes crawl down the Micro Dot pHAT columns, or sideways right to left, with dark gaps between them |
+| `langtons-ant` | Langton's ant builds a changing pattern on the Micro Dot pHAT |
+| `ripple` | Three drifting wave sources make interference and moire |
+| `pong` | Two paddles play an automatic rally on the Micro Dot pHAT |
+| `fireworks` | Rockets and falling sparks on either board |
+| `dvd` | The DVD logo bounces around the Micro Dot pHAT |
+| `maze` | Generates, solves and redraws a maze with a running dot |
+| `scope` | Lissajous figures and vector shapes with a phosphor trail |
+| `automata` | Life, HighLife, Seeds and Brian's Brain take turns |
+| `melt` | A message assembles from falling pixels and melts away |
+| `sonar` | Radar sweep with fading echoes |
+| `boids` | Flocking colored particles on a Unicorn board |
+| `aurora` | Colored curtains on a Unicorn board |
+| `lightning` | Storm, rain and branching bolts on a Unicorn board |
+| `aquarium` | Fish, bubbles and seaweed on a Unicorn board |
 | `clear` | Blanks the attached board |
 
-`_display.py`, `_net.py` and `_xpi_state.py` are helpers imported by those
-scripts. The leading `_` keeps them out of the run list.
+`_display.py`, `_dot.py`, `_net.py` and `_xpi_state.py` are helpers imported by
+those scripts. The leading `_` keeps them out of the run list.
 
 `snake` follows the page speed slider like every script. The snake control on
 the page switches between down columns and sideways rows, or set `snake_path`
