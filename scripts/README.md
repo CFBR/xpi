@@ -9,6 +9,7 @@ load.
 | Script | What it does |
 |---|---|
 | `message` | Scrolling text from `state.json` `message` |
+| `decrypt-text` | Scrambles each word, decodes it one letter at a time, then pauses |
 | `timer` | Countdown from `state.json` `seconds` |
 | `hostname` | Scrolls the Pi's hostname on either board |
 | `ip` | Scrolls hostname and LAN address on either board |
