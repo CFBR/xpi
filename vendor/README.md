@@ -56,6 +56,11 @@ Pimoroni examples. Scripts can still set their own brightness; `state.json`
 scales whatever they set. `_xpi_state.brightness()` gives a script the value
 directly when it wants to do its own scaling.
 
+Both `show()` functions also publish the frame they just drew through
+`support/_xpi_frame.py`. The server serves it at `?action=frame`, which is how
+the page's live viewer follows the real LEDs. If the helper is missing, the
+call is ignored and the display still runs.
+
 ## Re-syncing with upstream
 
 1. Copy the files from a fresh clone of the upstream repo at the new commit,

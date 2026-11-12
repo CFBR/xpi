@@ -703,6 +703,7 @@ try {
 <script>
 "use strict";
 var state = null, board = "all", firstRefresh = true, seeded = false;
+var liveFrame = null, liveFrameKey = "";
 var pendingScript = null;
 var scriptSearch = document.getElementById("scriptSearch");
 var bootInput = document.getElementById("boot");
@@ -774,7 +775,7 @@ async function refresh() {
   var shape = shapeOf(state.attached);
   rebuildDrawGrid(shape);
   seedDrawing(design);
-  renderPreview(design);
+  if (!renderLiveFrame(liveFrame)) renderPreview(design);
   syncBrightness(design);
   syncSpeed(design);
   syncDensity(design);
@@ -1710,8 +1711,75 @@ function fastCount() {
   return Math.round(999999 * secondsToMidnight() / 86400);
 }
 
+function frameMatches(frame) {
+  if (!frame || !frame.available) return false;
+  if (!state || !state.attached) return true;
+  var attached = state.attached;
+  if (attached.indexOf("microdot") >= 0)
+    return frame.board === "microdot-phat";
+  if (attached.indexOf("unicorn") >= 0)
+    return String(frame.board || "").indexOf("unicorn") === 0;
+  return true;
+}
+
+function renderLiveFrame(frame) {
+  if (!frameMatches(frame)) return false;
+  var shape, cells = [], key;
+  if (frame.board === "microdot-phat") {
+    shape = shapeOf("microdot-phat");
+    key = "m|" + (frame.rows || []).join("");
+    if (key !== liveFrameKey) {
+      for (var y = 0; y < shape.r; y++) {
+        var row = (frame.rows && frame.rows[y]) || "";
+        for (var x = 0; x < 30; x++) {
+          if (row.charAt(x) === "1") {
+            var bx = Math.floor(x / 5) * 8 + x % 5;
+            cells[y * shape.c + bx] = "#e6e6e6";
+          }
+        }
+      }
+    }
+  } else {
+    shape = { c: Number(frame.width) || 8,
+              r: Number(frame.height) || 8,
+              mono: false };
+    key = "u|" + shape.c + "x" + shape.r + "|" + (frame.data || "");
+    if (key !== liveFrameKey) {
+      var raw = "";
+      try { raw = atob(frame.data || ""); } catch (e) {}
+      for (var y = 0; y < shape.r; y++) {
+        for (var x = 0; x < shape.c; x++) {
+          var i = (y * shape.c + x) * 3;
+          if (i + 2 >= raw.length) continue;
+          var r = raw.charCodeAt(i) & 255;
+          var g = raw.charCodeAt(i + 1) & 255;
+          var b = raw.charCodeAt(i + 2) & 255;
+          if (r || g || b) {
+            cells[y * shape.c + x] =
+              "rgb(" + r + "," + g + "," + b + ")";
+          }
+        }
+      }
+    }
+  }
+  var box = document.getElementById("preview");
+  if (key !== liveFrameKey) {
+    liveFrameKey = key;
+    box.innerHTML = "";
+    box.appendChild(makeLedGrid(shape, cells));
+  }
+  var note = document.getElementById("previewNote");
+  var age = Number(frame.age) || 0;
+  note.textContent = "live from the board";
+  note.title = age >= 1
+    ? "last frame written " + Math.round(age) + "s ago"
+    : "last frame just written";
+  return true;
+}
+
 function renderPreview(designState) {
   if (!state) return;
+  liveFrameKey = "";
   var box = document.getElementById("preview");
   box.innerHTML = "";
   var shape = shapeOf(state.attached);
@@ -2099,7 +2167,28 @@ window.addEventListener("resize", function () {
   refresh();
 })();
 
+async function refreshFrame() {
+  if (document.hidden) return;
+  try {
+    var res = await fetch('/action=frame', {cache: 'no-store'});
+    if (!res.ok) return;
+    var frame = await res.json();
+    if (!frame || !frame.available) {
+      liveFrame = null;
+      return;
+    }
+    liveFrame = frame;
+    if (!renderLiveFrame(frame)) liveFrame = null;
+  } catch (e) {}
+}
+
+document.addEventListener("visibilitychange", function () {
+  if (!document.hidden) refreshFrame();
+});
+
 setInterval(refresh, 5000);
+setInterval(refreshFrame, 250);
+refreshFrame();
 </script>
 </body>
 </html>

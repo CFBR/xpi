@@ -7,10 +7,10 @@ message, draw on the grid, set the brightness, and the board follows. xpi
 starts on boot and needs no app, no account, and no internet: any browser on
 your network will do.
 
-The page runs the bundled scripts and previews what the board shows. It also
-draws: drag across the LED grid to light pixels, drag over lit ones to erase,
-and send. A brightness slider, a light and dark toggle, and an editor that
-loads, saves, uploads and deletes files in `scripts/` sit beside it.
+The page runs the bundled scripts and shows what the board is displaying. It
+also draws: drag across the LED grid to light pixels, drag over lit ones to
+erase, and send. A brightness slider, a light and dark toggle, and an editor
+that loads, saves, uploads and deletes files in `scripts/` sit beside it.
 
 ![xpi control page](docs/control-page.png)
 

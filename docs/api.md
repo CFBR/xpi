@@ -31,6 +31,7 @@ Quote the whole URL in a shell, because `?` and `&` are shell metacharacters.
 | `?action=saventfy&url=<base>&topic=<topic>&token=<token>&start=1` | Save ntfy settings and optionally start the alert listener |
 | `?action=status` | Attached board, running script, pid, boot, scripts, boards, ip, revision, log. `?action=scripts` is an alias |
 | `?action=state` | The current `state.json` |
+| `?action=frame` | The last frame the display libraries showed, for the live viewer |
 | `?action=getscript&script=<name>` | The script's source, as `{"script": ..., "code": ...}` |
 | `?action=savescript&script=<name>` | Write the POST body to that script. Must parse as Python |
 | `?action=delscript&script=<name>` | Delete a script from `scripts/`. The `_` helpers are protected |
@@ -90,6 +91,19 @@ High-priority messages flash, then scroll. After `ntfy_hold` seconds
 Apprise can publish to the same topic through its ntfy target, so one
 subscription covers every service that forwards there.
 
+## Live frame
+
+The vendored `show()` functions publish the last frame to a small file in the
+system temp directory. `?action=frame` returns it, so the page can draw the
+actual LEDs instead of guessing from `state.json`. Micro Dot frames carry
+`rows`, seven strings of 30 ones and zeros. Unicorn frames carry `width`,
+`height`, and base64 RGB `data`. `age` is the seconds since the last write.
+If no frame has been published, the reply is `{"available": false}`.
+
+The page polls this action about four times a second and pauses while the tab
+is hidden. The display libraries throttle writes, so a static frame is not
+rewritten on every `show()`.
+
 ## Colors
 
 Names: `red`, `green`, `blue`, `white`, `yellow`, `orange`, `purple`,
@@ -129,7 +143,7 @@ on your own network.
 `?action=backup` returns one JSON object:
 
 ```json
-{"version": "2.4.0", "config": {}, "state": {}, "scripts": {"rain.py": "..."}}
+{"version": "2.5.0", "config": {}, "state": {}, "scripts": {"rain.py": "..."}}
 ```
 
 POST it back to `?action=restore` to write the scripts and config in. Useful

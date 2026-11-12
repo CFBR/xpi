@@ -451,4 +451,10 @@ def show():
     if _state_scale() != _applied_scale:
         _apply_brightness()
     ws2812.show()
+    try:
+        import _xpi_frame
+        if _xpi_frame.due():
+            _xpi_frame.publish_unicorn(get_shape(), get_pixels())
+    except Exception:
+        pass
 
