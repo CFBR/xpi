@@ -374,6 +374,7 @@ try {
 <header class="top">
   <div class="brand"><span class="dot"></span><h1>xpi</h1></div>
   <div class="pills">
+    <span class="pill"><i>version</i><b id="pVersion">…</b></span>
     <span class="pill"><i>host</i><b id="pHost">…</b></span>
     <span class="pill"><i>ip</i><b id="pIp">…</b></span>
     <span class="pill"><i>board</i><b id="pBoard">…</b></span>
@@ -573,6 +574,7 @@ async function refresh() {
 
   document.getElementById('pHost').textContent = state.hostname || 'pi';
   document.getElementById('pIp').textContent = state.ip || 'unknown';
+  document.getElementById('pVersion').textContent = state.version || 'unknown';
   document.getElementById('pBoard').textContent = state.attached || 'unknown';
   var run = state.running;
   document.getElementById('pRun').textContent = run ? (run + (state.pid ? ' · ' + state.pid : '')) : 'none';
@@ -651,7 +653,7 @@ function renderChips() {
   log.textContent = "last output: " + tail;
   log.title = (state.log || "").trim() || "(none)";
   document.getElementById("logFull").textContent = (state.log || "").trim() || "(empty)";
-  document.getElementById("ver").textContent = "xpi " + (state.version || "");
+  document.getElementById("ver").textContent = "xpi v" + (state.version || "");
 }
 
 function fillEditorList() {

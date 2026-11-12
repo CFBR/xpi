@@ -8,7 +8,7 @@ SRC="$(cd "$(dirname "$0")" && pwd)"
 
 echo "deploying from $SRC to $DEST"
 mkdir -p "$DEST/scripts"
-cp "$SRC/server.py" "$SRC/index.html" "$DEST/"
+cp "$SRC/server.py" "$SRC/index.html" "$SRC/version.py" "$DEST/"
 # keep an existing config.json: it holds the boot script and any token
 if [ ! -f "$DEST/config.json" ]; then cp "$SRC/config.json" "$DEST/"; fi
 cp -r "$SRC/scripts/." "$DEST/scripts/"          # keeps scripts saved from the web editor
