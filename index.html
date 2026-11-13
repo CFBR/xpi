@@ -752,11 +752,18 @@ function scriptMatches(name, query) {
 /* ------------------------------------------------------------ refresh --- */
 
 async function refresh() {
+  if (document.hidden) return;
   var seq = ++refreshSeq;
-  var status;
-  try { status = await (await fetch('/action=status')).json(); } catch (e) { return; }
-  var design = {};
-  try { design = await (await fetch('/action=state')).json() || {}; } catch (e) {}
+  var status, design = {};
+  try {
+    var parts = await Promise.all([
+      fetch('/action=status', {cache: 'no-store'}),
+      fetch('/action=state', {cache: 'no-store'})
+    ]);
+    if (!parts[0].ok) return;
+    status = await parts[0].json();
+    if (parts[1].ok) design = await parts[1].json() || {};
+  } catch (e) { return; }
   if (seq !== refreshSeq) return;
   if (!status || typeof status !== "object") return;
   state = status;
@@ -1725,6 +1732,7 @@ function apiHeaders(extra) {
 
 async function apiFetch(url, options) {
   options = options || {};
+  options.cache = options.cache || "no-store";
   options.headers = apiHeaders(options.headers);
   var response = await fetch(url, options);
   if (response.status !== 401) return response;
@@ -2290,7 +2298,7 @@ async function refreshFrame() {
 }
 
 document.addEventListener("visibilitychange", function () {
-  if (!document.hidden) refreshFrame();
+  if (!document.hidden) { refresh(); refreshFrame(); }
 });
 
 setInterval(refresh, 5000);
