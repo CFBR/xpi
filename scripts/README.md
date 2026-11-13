@@ -18,7 +18,7 @@ load.
 | `timer` | Countdown from `state.json` `seconds` |
 | `hostname` | Scrolls the Pi's hostname on either board |
 | `ip` | Scrolls hostname and LAN address on either board |
-| `github-commits` | Total commits for a GitHub user or repo, refreshed every minute |
+| `github-commits` | Commits today, this week, this month, or total for a GitHub user or repo |
 | `social-stats` | One number for GitHub commits, followers, following, stars, or YouTube subscribers, views, videos |
 | `ntfy` | Subscribes to an ntfy topic and scrolls incoming alerts |
 | `unicorn_message` | Scrolling text in color on a Unicorn board |

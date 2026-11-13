@@ -40,17 +40,22 @@ def get_json(url, token=None):
         return json.load(response), response.headers
 
 
-def user_commits(user):
-    query = urllib.parse.quote("author:%s" % user, safe="")
+def user_commits(user, since=None):
+    query = "author:%s" % user
+    if since:
+        query += " committer-date:>=%s" % since
     data, _ = get_json(
-        "https://api.github.com/search/commits?q=%s&per_page=1" % query)
+        "https://api.github.com/search/commits?q=%s&per_page=1"
+        % urllib.parse.quote(query, safe=""))
     return int(data.get("total_count") or 0)
 
 
-def repo_commits(repo):
+def repo_commits(repo, since=None):
     path = urllib.parse.quote(repo, safe="/")
-    data, headers = get_json(
-        "https://api.github.com/repos/%s/commits?per_page=1" % path)
+    url = "https://api.github.com/repos/%s/commits?per_page=1" % path
+    if since:
+        url += "&since=" + urllib.parse.quote(since)
+    data, headers = get_json(url)
     link = headers.get("Link", "")
     match = re.search(r'[?&]page=(\d+)>; rel="last"', link)
     if match:
