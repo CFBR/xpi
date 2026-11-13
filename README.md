@@ -38,6 +38,14 @@ Open it and pick a script.
 Copying the folder from a laptop, updating, logs and removal are covered in
 [`docs/install.md`](docs/install.md).
 
+## Security
+
+xpi is built for a trusted LAN. The service runs as root because the Unicorn
+driver writes to `/dev/mem`, and the editor can save scripts that run as root.
+Set `token` in `config.json` if other people or devices share the network. The
+token guards writes; `status`, `state`, and `frame` stay readable so the page
+can load. Do not expose the port to the internet.
+
 ## Documentation
 
 | Document | Covers |
