@@ -14,6 +14,7 @@ load.
 | `github-status` | Open PRs, review requests and the latest CI result |
 | `binary-clock` | BCD time and date on the six Micro Dot matrices |
 | `ha-sensor` | One Home Assistant or MQTT sensor, with a unit |
+| `crypto-price` | Bitcoin, Ethereum and Monero prices with 24 hour change |
 | `timer` | Countdown from `state.json` `seconds` |
 | `hostname` | Scrolls the Pi's hostname on either board |
 | `ip` | Scrolls hostname and LAN address on either board |
