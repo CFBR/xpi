@@ -12,6 +12,7 @@ load.
 | `decrypt-text` | Scrambles each word, decodes it one letter at a time, then pauses |
 | `pi-health` | CPU temperature, load, memory, disk, uptime and throttle |
 | `github-status` | Open PRs, review requests and the latest CI result |
+| `binary-clock` | BCD time and date on the six Micro Dot matrices |
 | `timer` | Countdown from `state.json` `seconds` |
 | `hostname` | Scrolls the Pi's hostname on either board |
 | `ip` | Scrolls hostname and LAN address on either board |
