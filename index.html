@@ -547,6 +547,19 @@ try {
     </div>
 
     <div class="row">
+      <label class="field">commits
+        <select id="ghPeriod">
+          <option value="today" selected>today</option>
+          <option value="week">this week</option>
+          <option value="month">this month</option>
+          <option value="total">total</option>
+        </select>
+      </label>
+      <button onclick="showCommits()">Show commits</button>
+      <span class="hint">uses the social target</span>
+    </div>
+
+    <div class="row">
       <label class="field">crypto
         <select id="cryptoCoin">
           <option value="bitcoin">bitcoin</option>
@@ -894,6 +907,7 @@ async function refresh() {
   syncDensity(design);
   syncSnakePath(design);
   syncSocial(design);
+  syncCommits(design);
   syncCrypto(design);
   syncNtfy(state.ntfy);
   renderHealth(health);
@@ -1648,6 +1662,23 @@ function showSocial() {
       + '&social_target=' + encodeURIComponent(target)
       + '&social_metric=' + encodeURIComponent(metric)
       + '&script=social-stats', 'social-stats');
+}
+
+function syncCommits(design) {
+  var select = document.getElementById('ghPeriod');
+  if (document.activeElement === select || !design) return;
+  var value = String(design.gh_period || 'today');
+  if (['today', 'week', 'month', 'total'].indexOf(value) >= 0) {
+    select.value = value;
+  }
+}
+
+function showCommits() {
+  var target = document.getElementById('socialTarget').value.trim();
+  var extra = 'script=github-commits&gh_period='
+    + encodeURIComponent(document.getElementById('ghPeriod').value);
+  if (target) extra += '&gh_target=' + encodeURIComponent(target);
+  act('update', extra, 'github-commits');
 }
 
 function syncCrypto(design) {

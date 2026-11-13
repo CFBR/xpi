@@ -1,13 +1,17 @@
-# github-commits.py: total commits for a GitHub user or repo.
+# github-commits.py: commits for a GitHub user or repo.
 #
 # Target comes from state.json "gh_target": a username, owner/repo, or a
-# GitHub URL. It falls back to "repo", then CFBR/xpi. The number refreshes
-# every minute (gh_refresh, minimum 60). A user target uses the commit search
-# API; a repo target reads the last page of the commits API.
+# GitHub URL. It falls back to "repo", then CFBR/xpi.
+#
+# gh_period is today, week, month, or total. It defaults to today so the
+# number resets at local midnight. The number refreshes every minute
+# (gh_refresh, minimum 60). A user target uses the commit search API; a repo
+# target reads the last page of the commits API.
 #
 # The search API allows 10 requests a minute without a token. The commits API
 # allows 60 an hour, so one repo request a minute is the limit.
 
+import datetime
 import time
 
 import _display
@@ -34,12 +38,38 @@ def refresh_seconds():
         return DEFAULT_REFRESH
 
 
+def period():
+    value = str(_xpi_state.value("gh_period") or "today").strip().lower()
+    return value if value in ("today", "week", "month", "total") else "today"
+
+
+def period_start():
+    current = period()
+    if current == "total":
+        return None
+    now = datetime.datetime.now()
+    if current == "week":
+        now -= datetime.timedelta(days=now.weekday())
+    elif current == "month":
+        now = now.replace(day=1)
+    return now.replace(hour=0, minute=0, second=0, microsecond=0)
+
+
 def fetch(previous):
     kind, name = _github.target(target_text())
+    start = period_start()
     try:
-        count = _github.repo_commits(name) if kind == "repo" \
-            else _github.user_commits(name)
-        print("github-commits.py: %s %s has %d commits" % (kind, name, count))
+        if start is None:
+            count = _github.repo_commits(name) if kind == "repo" \
+                else _github.user_commits(name)
+        else:
+            since = start.astimezone(datetime.timezone.utc).strftime(
+                "%Y-%m-%dT%H:%M:%SZ")
+            day = start.strftime("%Y-%m-%d")
+            count = _github.repo_commits(name, since) if kind == "repo" \
+                else _github.user_commits(name, day)
+        print("github-commits.py: %s %s %s has %d commits"
+              % (kind, name, period(), count))
         return count
     except Exception as exc:
         print("github-commits.py: fetch failed for %s %s: %s"
