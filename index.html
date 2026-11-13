@@ -1553,10 +1553,12 @@ function startNtfy() {
   var topic = document.getElementById('ntfyTopic').value.trim();
   var token = document.getElementById('ntfyToken').value.trim();
   if (!topic) { alert('set an ntfy topic'); return; }
-  act('saventfy', 'url=' + encodeURIComponent(url)
-      + '&topic=' + encodeURIComponent(topic)
-      + '&token=' + encodeURIComponent(token)
-      + '&start=1', 'ntfy');
+  act('saventfy', '', 'ntfy', {
+    method: 'POST',
+    noHistory: true,
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({url: url, topic: topic, token: token, start: 1})
+  });
 }
 
 brightInput.addEventListener("input", function () {
@@ -2042,17 +2044,21 @@ async function restoreNow(input) {
 
 /* ------------------------------------------------------------- actions --- */
 
-async function act(action, extra, name) {
+async function act(action, extra, name, options) {
+  options = options || {};
   var qs = "action=" + action + (extra ? "&" + extra : "");
-  pushQS(qs);
+  if (!options.noHistory) pushQS(qs);
   if (name && state) {
     pendingScript = name;
     renderChips();
     document.getElementById('pRun').textContent = name + ' · starting';
     document.getElementById('pRunPill').className = 'pill pending';
   }
+  var init = {method: options.method || "GET"};
+  if (options.body !== undefined) init.body = options.body;
+  if (options.headers) init.headers = options.headers;
   try {
-    await apiFetch('/?' + qs);
+    await apiFetch('/?' + qs, init);
   } finally {
     pendingScript = null;
     refresh();
