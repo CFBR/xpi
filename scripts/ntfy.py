@@ -52,6 +52,18 @@ def text_speed():
         return 1.0
 
 
+def clean_microdot(text):
+    text = str(text).replace("\r", " ").replace("\n", " ").replace("\t", " ")
+    text = "".join(ch if 32 <= ord(ch) < 127 else " " for ch in text)
+    return " ".join(text.split()) or "ALERT"
+
+
+def clean_unicorn(text):
+    allowed = set("ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.-:_ ")
+    text = "".join(ch if ch in allowed else " " for ch in str(text).upper())
+    return " ".join(text.split()) or "ALERT"
+
+
 def listen(url, topic, token, messages):
     endpoint = "%s/%s/json" % (url.rstrip("/"), urllib.parse.quote(topic))
     headers = {"User-Agent": "xpi", "Accept": "application/json"}
@@ -130,14 +142,20 @@ def run_microdot():
             message = None
 
         if message:
-            text = message
+            text = clean_microdot(message)
             showing_clock = False
             hold_until = time.time() + hold_seconds()
             carry = 0.0
             if priority >= 4:
                 flash_microdot()
             microdotphat.clear()
-            microdotphat.write_string(text)
+            try:
+                microdotphat.write_string(text)
+            except Exception as exc:
+                print("ntfy.py: could not render alert:", exc)
+                text = "ALERT"
+                microdotphat.clear()
+                microdotphat.write_string(text)
             print("ntfy.py: alert:", text)
         elif not showing_clock and time.time() >= hold_until:
             text = time.strftime("%H:%M")
@@ -190,7 +208,7 @@ def run_unicorn():
             message = None
 
         if message:
-            text = message
+            text = clean_unicorn(message)
             grid = _display.text_bitmap(text)
             offset = 0
             showing_clock = False
@@ -225,12 +243,14 @@ def run_unicorn():
 
 
 def main():
+    microdot = False
     try:
         import microdotphat
-        if microdotphat.is_connected():
-            return run_microdot()
+        microdot = microdotphat.is_connected()
     except Exception as exc:
         print("ntfy.py: no microdot-phat:", exc)
+    if microdot:
+        return run_microdot()
     try:
         import unicornhat
     except Exception as exc:
