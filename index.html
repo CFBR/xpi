@@ -702,7 +702,7 @@ try {
 
 <script>
 "use strict";
-var state = null, board = "all", firstRefresh = true, seeded = false;
+var state = null, board = "all", firstRefresh = true, wasDraw = false;
 var liveFrame = null, liveFrameKey = "";
 var liveGridKey = "", liveCells = [];
 var refreshSeq = 0;
@@ -798,7 +798,7 @@ async function refresh() {
   syncNtfy(state.ntfy);
   fillEditorList();
 
-  if (!seeded) seeded = true;
+  if (state.running !== "draw") wasDraw = false;
 }
 
 var tabsKey = "";
@@ -1395,12 +1395,14 @@ gridEl.addEventListener("pointerup", endStroke);
 gridEl.addEventListener("pointercancel", endStroke);
 
 function seedDrawing(design) {
-  if (seeded || !state || state.running !== "draw") return;
+  if (!state || state.running !== "draw") return;
+  if (wasDraw || painting || dirty || !shapeNow) return;
   var raw = design && design.pixels;
   if (!raw) return;
   var list = [];
   try { list = JSON.parse(raw); } catch (e) { return; }
-  if (!Array.isArray(list) || !list.length) return;
+  if (!Array.isArray(list)) return;
+  Object.keys(pix).forEach(function (k) { delete pix[k]; });
   list.forEach(function (p) {
     if (!Array.isArray(p) || p.length < 2) return;
     var x = Number(p[0]), y = Number(p[1]);
@@ -1409,6 +1411,7 @@ function seedDrawing(design) {
     pix[keyOf(x, y)] = p[2] || (shapeNow.mono ? "#e6e6e6" : "#ffffff");
   });
   applyAllCells();
+  wasDraw = true;
 }
 
 function pixelsPayload() {
