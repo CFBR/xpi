@@ -1,7 +1,7 @@
 # Vendored display libraries
 
 xpi ships both Pimoroni display libraries in this folder so a fresh Pi needs
-nothing else. Each is a straight copy plus one local patch, described below.
+nothing else. Each is a straight copy plus local patches, described below.
 
 | Board | Files | Upstream | Copied from |
 |---|---|---|---|
@@ -44,7 +44,7 @@ library, a Java client by Jim Darby
 
 ## The xpi patch
 
-Both libraries carry the same change, marked with `# --- xpi:`:
+Both libraries carry the same brightness change, marked with `# --- xpi:`:
 
 - `microdotphat/__init__.py` reads `state.json` and scales the brightness of
   every matrix inside `show()`, through `_state_scale()` and `_apply_scale()`.
@@ -57,16 +57,18 @@ scales whatever they set. `_xpi_state.brightness()` gives a script the value
 directly when it wants to do its own scaling.
 
 Both `show()` functions also publish the frame they just drew through
-`support/_xpi_frame.py`. The server serves it at `?action=frame`, which is how
-the page's live viewer follows the real LEDs. If the helper is missing, the
-call is ignored and the display still runs.
+`support/_xpi_frame.py`. That block is marked
+`# --- xpi: publish the frame for the live viewer`. The server serves it at
+`?action=frame`, which is how the page's live viewer follows the real LEDs.
+If the helper is missing, the call is ignored and the display still runs.
 
 ## Re-syncing with upstream
 
 1. Copy the files from a fresh clone of the upstream repo at the new commit,
    keeping `font.py`, `matrix.py` and `__init__.py` together.
-2. Re-apply the block marked `# --- xpi:` at the top of `__init__.py` or
-   `unicornhat.py`, plus the re-apply check inside `show()`.
+2. Re-apply the blocks marked `# --- xpi:` at the top of `__init__.py` or
+   `unicornhat.py`, plus the brightness check and the frame publisher inside
+   `show()`.
 3. Update the commit column above.
 4. Re-copy any changed examples into `../scripts/`. The copies carry a two line
    header, so diff with that in mind.
