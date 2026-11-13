@@ -451,6 +451,7 @@ def show():
     if _state_scale() != _applied_scale:
         _apply_brightness()
     ws2812.show()
+    # --- xpi: publish the frame for the live viewer ---
     try:
         import _xpi_frame
         if _xpi_frame.due():

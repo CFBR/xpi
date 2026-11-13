@@ -402,6 +402,7 @@ def show():
     if _mirror:
         scrolled_buffer = numpy.fliplr(scrolled_buffer[:7, :45])
 
+    # --- xpi: publish the frame for the live viewer ---
     try:
         import _xpi_frame
         if _xpi_frame.due():
