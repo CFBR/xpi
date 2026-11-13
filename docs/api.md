@@ -135,14 +135,8 @@ stop:
 Guarded: `stop`, `boot`, `playlist`, `savegroup`, `delgroup`, `playgroup`,
 `stopgroup`, `saventfy`, `savescript`, `delscript`, `savedrawing`, `backup`
 and `restore`. Send it as `?token=...` or in an `X-XPI-Token` header.
-The page asks once and keeps it in the browser. Leave it null for an open box
-on your own network.
-
-The token guards writes only. `status`, `state`, and `frame` stay readable so
-the page can load without it. Keep the service on a trusted network or put it
-behind a reverse proxy that adds authentication. The service runs as root
-because the Unicorn driver needs `/dev/mem`, and a saved script runs as root
-too.
+The page asks once and keeps it in the browser. `status`, `state`, and `frame`
+are readable without the token.
 
 ## Backup and restore
 
