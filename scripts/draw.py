@@ -42,7 +42,7 @@ def run_unicorn(pixels):
             pixels = get_pixels()
             print("draw.py: new design,", len(pixels), "pixels")
             render(pixels, shape, unicornhat.show)
-        time.sleep(0.5)
+        time.sleep(0.1)
 
 
 def render(pixels, shape, show):
@@ -81,7 +81,7 @@ def run_microdot(pixels):
             pixels = get_pixels()
             print("draw.py: new design,", len(pixels), "pixels")
             draw(pixels, microdotphat.show)
-        time.sleep(0.5)
+        time.sleep(0.1)
 
 
 def draw(pixels, show):
