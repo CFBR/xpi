@@ -704,6 +704,7 @@ try {
 "use strict";
 var state = null, board = "all", firstRefresh = true, seeded = false;
 var liveFrame = null, liveFrameKey = "";
+var liveGridKey = "", liveCells = [];
 var refreshSeq = 0;
 var pendingScript = null;
 var scriptSearch = document.getElementById("scriptSearch");
@@ -793,6 +794,8 @@ async function refresh() {
   if (!seeded) seeded = true;
 }
 
+var tabsKey = "";
+
 function renderTabs() {
   var boardTags = state.boards || {};
   var uniq = ["all"].concat(Object.keys(boardTags)
@@ -800,6 +803,9 @@ function renderTabs() {
     .filter(function (t) { return t !== "all" && t !== "both"; })
     .reduce(function (a, t) { if (a.indexOf(t) < 0) a.push(t); return a; }, []));
   if (uniq.indexOf(board) < 0) board = "all";
+  var key = uniq.join("|") + "|" + board;
+  if (key === tabsKey) return;
+  tabsKey = key;
   var nav = document.getElementById("boards");
   nav.innerHTML = "";
   uniq.forEach(function (t) {
@@ -898,19 +904,29 @@ function highlightBoot(step) {
   markBoot((bootIndex + step + bootItems.length) % bootItems.length);
 }
 
+var chipsKey = "";
+
 function renderChips() {
   if (!state) return;
   var grid = document.getElementById("grid");
   var count = document.getElementById("scriptCount");
   var query = searchQuery();
+  var key = board + "\n" + query + "\n" + (state.running || "") + "\n"
+    + (pendingScript || "") + "\n" + (state.scripts || []).join("\n")
+    + "\n" + JSON.stringify(state.boards || {});
+  var rebuild = key !== chipsKey;
+  if (rebuild) {
+    chipsKey = key;
+    grid.innerHTML = "";
+  }
   var total = 0, shown = 0;
-  grid.innerHTML = "";
   (state.scripts || []).forEach(function (n) {
     var tag = boardOf((state.boards || {})[n]);
     if (!matches(tag)) return;
     total++;
     if (!scriptMatches(n, query)) return;
     shown++;
+    if (!rebuild) return;
     var b = document.createElement("button");
     b.className = "chip" + (n === state.running ? " running" : "")
       + (n === pendingScript ? " pending" : "");
@@ -924,7 +940,7 @@ function renderChips() {
     grid.appendChild(b);
   });
   count.textContent = query ? (shown + " of " + total + " scripts") : "";
-  if (!shown && total) {
+  if (rebuild && !shown && total) {
     var empty = document.createElement("span");
     empty.className = "hint";
     empty.textContent = "no scripts match";
@@ -990,12 +1006,21 @@ function groupByName(name) {
   return groups.filter(function (g) { return g.name === name; })[0];
 }
 
+var groupsKey = "";
+
 function renderGroups() {
   if (!state) return;
   buildGroupScripts();
   applyGroupFilter();
   var list = document.getElementById("groupList");
   var groups = Array.isArray(state.groups) ? state.groups : [];
+  var key = JSON.stringify(groups) + "|" + (state.active_group || "");
+  if (key === groupsKey) {
+    document.getElementById("groupActive").textContent = state.active_group
+      ? "active: " + state.active_group : "not rotating";
+    return;
+  }
+  groupsKey = key;
   list.innerHTML = "";
   if (!groups.length) {
     var empty = document.createElement("p");
@@ -1082,16 +1107,22 @@ function deleteGroup(name) {
   act('delgroup', 'name=' + encodeURIComponent(name));
 }
 
+var editorKey = "";
+
 function fillEditorList() {
   var ed = document.getElementById("edList");
+  var scripts = (state.scripts || []).filter(function (n) { return n !== "draw"; });
+  var key = scripts.join("\n");
+  if (key === editorKey) return;
+  editorKey = key;
   var currentVal = ed.value;
-  ed.innerHTML = "";  (state.scripts || []).filter(function (n) { return n !== "draw"; })
-    .forEach(function (stem) {
-      var opt = document.createElement("option");
-      opt.value = stem; opt.textContent = stem + ".py";
-      ed.appendChild(opt);
-    });
-  if (currentVal && (state.scripts || []).indexOf(currentVal) >= 0)
+  ed.innerHTML = "";
+  scripts.forEach(function (stem) {
+    var opt = document.createElement("option");
+    opt.value = stem; opt.textContent = stem + ".py";
+    ed.appendChild(opt);
+  });
+  if (currentVal && scripts.indexOf(currentVal) >= 0)
     ed.value = currentVal;
 }
 
@@ -1737,51 +1768,104 @@ function frameMatches(frame) {
   return true;
 }
 
+function buildLiveGrid(shape) {
+  var box = document.getElementById("preview");
+  box.innerHTML = "";
+  liveCells = [];
+  if (shape.mono && shape.c === 45) {
+    var wrap = document.createElement("div");
+    wrap.className = "matrixRow";
+    for (var m = 0; m < 6; m++) {
+      var mat = document.createElement("div");
+      mat.className = "matrix";
+      for (var y = 0; y < shape.r; y++) {
+        for (var c = 0; c < 5; c++) {
+          var d = document.createElement("div");
+          d.style.width = "7px";
+          d.style.height = "7px";
+          d.style.borderRadius = "1px";
+          d.style.background = "var(--preview-off)";
+          mat.appendChild(d);
+          liveCells[y * shape.c + m * 8 + c] = d;
+        }
+      }
+      wrap.appendChild(mat);
+    }
+    box.appendChild(wrap);
+  } else {
+    var px = 16;
+    var wrap = document.createElement("div");
+    wrap.style.display = "grid";
+    wrap.style.gridTemplateColumns = "repeat(" + shape.c + ", " + px + "px)";
+    wrap.style.gap = "4px";
+    for (var y = 0; y < shape.r; y++) {
+      for (var x = 0; x < shape.c; x++) {
+        var d = document.createElement("div");
+        d.style.width = px + "px";
+        d.style.height = px + "px";
+        d.style.borderRadius = "3px";
+        d.style.background = "var(--preview-off)";
+        wrap.appendChild(d);
+        liveCells.push(d);
+      }
+    }
+    box.appendChild(wrap);
+  }
+  liveGridKey = shape.c + "x" + shape.r + (shape.mono ? "m" : "c");
+}
+
+function paintLiveCell(el, color) {
+  if (!el) return;
+  el.style.background = color || "var(--preview-off)";
+  el.style.boxShadow = color ? "0 0 8px " + color + "80" : "none";
+}
+
 function renderLiveFrame(frame) {
   if (!frameMatches(frame)) return false;
-  var shape, cells = [], key;
+  var shape, key;
   if (frame.board === "microdot-phat") {
     shape = shapeOf("microdot-phat");
     key = "m|" + (frame.rows || []).join("");
-    if (key !== liveFrameKey) {
-      for (var y = 0; y < shape.r; y++) {
-        var row = (frame.rows && frame.rows[y]) || "";
-        for (var x = 0; x < 30; x++) {
-          if (row.charAt(x) === "1") {
-            var bx = Math.floor(x / 5) * 8 + x % 5;
-            cells[y * shape.c + bx] = "#e6e6e6";
-          }
-        }
-      }
-    }
   } else {
     shape = { c: Number(frame.width) || 8,
               r: Number(frame.height) || 8,
               mono: false };
     key = "u|" + shape.c + "x" + shape.r + "|" + (frame.data || "");
-    if (key !== liveFrameKey) {
+  }
+  var gridKey = shape.c + "x" + shape.r + (shape.mono ? "m" : "c");
+  var rebuilt = false;
+  if (gridKey !== liveGridKey) {
+    buildLiveGrid(shape);
+    rebuilt = true;
+  }
+  if (rebuilt || key !== liveFrameKey) {
+    liveFrameKey = key;
+    if (frame.board === "microdot-phat") {
+      for (var y = 0; y < shape.r; y++) {
+        var row = (frame.rows && frame.rows[y]) || "";
+        for (var x = 0; x < 30; x++) {
+          var bx = Math.floor(x / 5) * 8 + x % 5;
+          paintLiveCell(liveCells[y * shape.c + bx],
+                        row.charAt(x) === "1" ? "#e6e6e6" : null);
+        }
+      }
+    } else {
       var raw = "";
       try { raw = atob(frame.data || ""); } catch (e) {}
       for (var y = 0; y < shape.r; y++) {
         for (var x = 0; x < shape.c; x++) {
+          var color = null;
           var i = (y * shape.c + x) * 3;
-          if (i + 2 >= raw.length) continue;
-          var r = raw.charCodeAt(i) & 255;
-          var g = raw.charCodeAt(i + 1) & 255;
-          var b = raw.charCodeAt(i + 2) & 255;
-          if (r || g || b) {
-            cells[y * shape.c + x] =
-              "rgb(" + r + "," + g + "," + b + ")";
+          if (i + 2 < raw.length) {
+            var r = raw.charCodeAt(i) & 255;
+            var g = raw.charCodeAt(i + 1) & 255;
+            var b = raw.charCodeAt(i + 2) & 255;
+            if (r || g || b) color = "rgb(" + r + "," + g + "," + b + ")";
           }
+          paintLiveCell(liveCells[y * shape.c + x], color);
         }
       }
     }
-  }
-  var box = document.getElementById("preview");
-  if (key !== liveFrameKey) {
-    liveFrameKey = key;
-    box.innerHTML = "";
-    box.appendChild(makeLedGrid(shape, cells));
   }
   var note = document.getElementById("previewNote");
   var age = Number(frame.age) || 0;
@@ -1795,6 +1879,8 @@ function renderLiveFrame(frame) {
 function renderPreview(designState) {
   if (!state) return;
   liveFrameKey = "";
+  liveGridKey = "";
+  liveCells = [];
   var box = document.getElementById("preview");
   box.innerHTML = "";
   var shape = shapeOf(state.attached);
