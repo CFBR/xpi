@@ -1383,7 +1383,12 @@ function pixelsPayload() {
 
 function sendPixels() {
   if (!shapeNow) return;
-  act('update', 'script=draw&pixels=' + encodeURIComponent(JSON.stringify(pixelsPayload())), 'draw');
+  var payload = 'pixels=' + encodeURIComponent(JSON.stringify(pixelsPayload()));
+  if (state && state.running === "draw") {
+    act('update', payload);
+  } else {
+    act('update', 'script=draw&' + payload, 'draw');
+  }
 }
 
 async function saveDrawing() {
@@ -2083,13 +2088,15 @@ function send() {
   if (t) {
     var effect = document.getElementById('msgEffect').value;
     var script = effect === 'decrypt-text' ? 'decrypt-text' : messageScript();
-    var extra = 'script=' + script + '&message=' + encodeURIComponent(t)
+    var restart = !(state && state.running === script);
+    var extra = (restart ? 'script=' + script + '&' : '')
+      + 'message=' + encodeURIComponent(t)
       + '&direction=' + document.getElementById('msgDir').value
       + '&mode=' + document.getElementById('msgMode').value
       + '&text_speed=' + document.getElementById('msgSpeed').value
       + '&word_seconds=' + document.getElementById('msgHold').value
       + '&fade=' + (document.getElementById('msgFade').checked ? 1 : 0);
-    act('update', extra, script);
+    act('update', extra, restart ? script : null);
   } else if (s) {
     act('update', 'script=timer&seconds=' + encodeURIComponent(s), 'timer');
   }
