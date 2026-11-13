@@ -1095,7 +1095,9 @@ function fillEditorList() {
     ed.value = currentVal;
 }
 
-function pushQS(qs) { history.pushState({}, "", "/?" + qs); }
+function pushQS(qs) {
+  try { history.pushState({}, "", "/?" + qs); } catch (e) {}
+}
 
 /* ------------------------------------------------------------- theme --- */
 
@@ -1385,9 +1387,9 @@ function sendPixels() {
   if (!shapeNow) return;
   var payload = 'pixels=' + encodeURIComponent(JSON.stringify(pixelsPayload()));
   if (state && state.running === "draw") {
-    act('update', payload);
+    act('update', payload, null, {noHistory: true});
   } else {
-    act('update', 'script=draw&' + payload, 'draw');
+    act('update', 'script=draw&' + payload, 'draw', {noHistory: true});
   }
 }
 
@@ -2047,7 +2049,7 @@ async function restoreNow(input) {
 async function act(action, extra, name, options) {
   options = options || {};
   var qs = "action=" + action + (extra ? "&" + extra : "");
-  if (!options.noHistory) pushQS(qs);
+  if (!options.noHistory && qs.length < 1000) pushQS(qs);
   if (name && state) {
     pendingScript = name;
     renderChips();
