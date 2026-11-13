@@ -205,20 +205,51 @@ def write_config(data):
 
 # --------------------------------------------------------------- script ---
 
+_tag_cache = {}
+
+
 def _board_from_source(path):
-    """Board tag from what a script imports (user scripts land here)."""
+    """Board tag from imports, cached by path and file stat."""
+    try:
+        info = os.stat(path)
+    except OSError:
+        return ""
+    key = (info.st_mtime_ns, info.st_size)
+    cached = _tag_cache.get(path)
+    if cached is not None and cached[0] == key:
+        return cached[1]
     try:
         with open(path) as fh:
             src = fh.read()
     except OSError:
         return ""
-    if "unicornhat" in src and "microdotphat" in src:
-        return "both"
-    if "microdotphat" in src:
-        return "microdot-phat"
-    if "unicornhat" in src:
-        return "unicorn-hat"
-    return "generic"
+    found = set()
+    try:
+        import ast
+        tree = ast.parse(src)
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                for alias in node.names:
+                    found.add(alias.name.split(".")[0])
+            elif isinstance(node, ast.ImportFrom) and node.module:
+                found.add(node.module.split(".")[0])
+    except SyntaxError:
+        found = set(re.findall(r"\b(?:import|from)\s+([A-Za-z_][\w.]*)", src))
+        has_micro = "microdotphat" in src
+        has_unicorn = "unicornhat" in src
+    else:
+        has_micro = "microdotphat" in found
+        has_unicorn = "unicornhat" in found
+    if has_micro and has_unicorn:
+        tag = "both"
+    elif has_micro:
+        tag = "microdot-phat"
+    elif has_unicorn:
+        tag = "unicorn-hat"
+    else:
+        tag = "generic"
+    _tag_cache[path] = (key, tag)
+    return tag
 
 
 def _board_from_dir(directory):
