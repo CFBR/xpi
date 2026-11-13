@@ -11,6 +11,7 @@ load.
 | `message` | Scrolling text from `state.json` `message` |
 | `decrypt-text` | Scrambles each word, decodes it one letter at a time, then pauses |
 | `pi-health` | CPU temperature, load, memory, disk, uptime and throttle |
+| `github-status` | Open PRs, review requests and the latest CI result |
 | `timer` | Countdown from `state.json` `seconds` |
 | `hostname` | Scrolls the Pi's hostname on either board |
 | `ip` | Scrolls hostname and LAN address on either board |
@@ -39,8 +40,10 @@ load.
 | `aquarium` | Fish, bubbles and seaweed on a Unicorn board |
 | `clear` | Blanks the attached board |
 
-`_display.py`, `_dot.py`, `_net.py` and `_xpi_state.py` are helpers imported by
-those scripts. The leading `_` keeps them out of the run list.
+`_display.py`, `_dot.py`, `_health.py`, `_net.py`, `_xpi_state.py` and the
+other leading underscore files are helpers imported by those scripts. The
+leading `_` keeps them out of the run list. `github-status` reads
+`github_token` from `config.json` when it needs review requests.
 
 `snake` follows the page speed slider like every script. The snake control on
 the page switches between down columns and sideways rows, or set `snake_path`

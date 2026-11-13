@@ -144,7 +144,7 @@ are readable without the token.
 `?action=backup` returns one JSON object:
 
 ```json
-{"version": "2.8.0", "config": {}, "state": {}, "scripts": {"rain.py": "..."}}
+{"version": "2.8.1", "config": {}, "state": {}, "scripts": {"rain.py": "..."}}
 ```
 
 POST it back to `?action=restore` to write the scripts and config in. Useful

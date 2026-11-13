@@ -30,9 +30,12 @@ def target(raw):
     return "user", parts[0]
 
 
-def get_json(url):
-    request = urllib.request.Request(url, headers={
-        "User-Agent": "xpi", "Accept": "application/vnd.github+json"})
+def get_json(url, token=None):
+    headers = {
+        "User-Agent": "xpi", "Accept": "application/vnd.github+json"}
+    if token:
+        headers["Authorization"] = "Bearer " + str(token)
+    request = urllib.request.Request(url, headers=headers)
     with urllib.request.urlopen(request, timeout=15) as response:
         return json.load(response), response.headers
 
@@ -73,6 +76,45 @@ def repo_stats(repo):
         "forks": int(data.get("forks_count") or 0),
         "issues": int(data.get("open_issues_count") or 0),
     }
+
+
+def open_pulls(repo, token=None):
+    path = urllib.parse.quote(repo, safe="/")
+    data, _ = get_json(
+        "https://api.github.com/repos/%s/pulls?state=open&per_page=100"
+        % path, token)
+    return len(data) if isinstance(data, list) else 0
+
+
+def review_requests(repo, token=None):
+    if not token:
+        return None
+    query = "is:pr is:open review-requested:@me repo:%s" % repo
+    data, _ = get_json(
+        "https://api.github.com/search/issues?q=%s&per_page=1"
+        % urllib.parse.quote(query, safe=""), token)
+    return int(data.get("total_count") or 0)
+
+
+def latest_ci(repo, branch="main", token=None):
+    path = urllib.parse.quote(repo, safe="/")
+    try:
+        data, _ = get_json(
+            "https://api.github.com/repos/%s/actions/runs?branch=%s&per_page=1"
+            % (path, urllib.parse.quote(branch)), token)
+        runs = data.get("workflow_runs") or []
+        if runs:
+            run = runs[0]
+            return run.get("conclusion") or run.get("status") or "unknown"
+    except Exception:
+        pass
+    try:
+        data, _ = get_json(
+            "https://api.github.com/repos/%s/commits/%s/status"
+            % (path, urllib.parse.quote(branch)), token)
+        return data.get("state") or "unknown"
+    except Exception:
+        return "unknown"
 
 
 def user_stars(user):
