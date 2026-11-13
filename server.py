@@ -141,6 +141,29 @@ def bump_state(patch):
         return data["revision"]
 
 
+def write_script_file(path, text):
+    """Write a script beside its destination, then replace atomically."""
+    directory = os.path.dirname(path)
+    fd, tmp = tempfile.mkstemp(dir=directory, prefix=".script-", suffix=".py")
+    try:
+        with os.fdopen(fd, "w") as fh:
+            fh.write(text)
+            fh.flush()
+            os.fsync(fh.fileno())
+        os.chmod(tmp, 0o644)
+        try:
+            os.chown(tmp, 1000, 1000)
+        except OSError:
+            pass
+        os.replace(tmp, path)
+    except Exception:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+        raise
+
+
 def read_frame():
     """The last frame published by the display libraries, or available=false."""
     try:
@@ -865,12 +888,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         except SyntaxError as exc:
             return self.respond(400, {"error": "syntax error: %s" % exc})
         try:
-            with open(path, "w") as fh:
-                fh.write(text)
-            try:
-                os.chown(path, 1000, 1000)
-            except OSError:
-                pass       # non-root servers skip this silently
+            write_script_file(path, text)
         except OSError as exc:
             return self.respond(500, {"error": str(exc)})
         print("server: saved script %s (%d bytes)" % (path, len(text)))
@@ -1061,12 +1079,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
         except SyntaxError as exc:
             return self.respond(400, {"error": "syntax error: %s" % exc})
         try:
-            with open(path, "w") as fh:
-                fh.write(text)
-            try:
-                os.chown(path, 1000, 1000)
-            except OSError:
-                pass
+            write_script_file(path, text)
         except OSError as exc:
             return self.respond(500, {"error": str(exc)})
         print("server: saved drawing %s (%d pixels)" % (path, len(clean)))
@@ -1113,8 +1126,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
             except SyntaxError:
                 continue
             try:
-                with open(path, "w") as fh:
-                    fh.write(code)
+                write_script_file(path, code)
                 written += 1
             except OSError:
                 pass
