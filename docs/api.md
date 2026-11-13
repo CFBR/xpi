@@ -138,12 +138,18 @@ and `restore`. Send it as `?token=...` or in an `X-XPI-Token` header.
 The page asks once and keeps it in the browser. Leave it null for an open box
 on your own network.
 
+The token guards writes only. `status`, `state`, and `frame` stay readable so
+the page can load without it. Keep the service on a trusted network or put it
+behind a reverse proxy that adds authentication. The service runs as root
+because the Unicorn driver needs `/dev/mem`, and a saved script runs as root
+too.
+
 ## Backup and restore
 
 `?action=backup` returns one JSON object:
 
 ```json
-{"version": "2.7.0", "config": {}, "state": {}, "scripts": {"rain.py": "..."}}
+{"version": "2.7.1", "config": {}, "state": {}, "scripts": {"rain.py": "..."}}
 ```
 
 POST it back to `?action=restore` to write the scripts and config in. Useful

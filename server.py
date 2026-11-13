@@ -294,6 +294,12 @@ SCRIPT_REGISTRY = {}
 _registry_lock = threading.Lock()
 _registry_last = 0.0
 
+MUTATING_ACTIONS = {
+    "update", "switch", "stop", "clear", "boot", "playlist", "savegroup",
+    "delgroup", "playgroup", "stopgroup", "saventfy", "savescript",
+    "delscript", "savedrawing", "restore",
+}
+
 
 def refresh_registry(force=False):
     """Rebuild the script list at most every two seconds, atomically."""
@@ -685,6 +691,17 @@ class Handler(http.server.BaseHTTPRequestHandler):
             except OSError:
                 pass
 
+    def _cross_site(self):
+        if self.headers.get("Sec-Fetch-Site") == "cross-site":
+            return True
+        origin = self.headers.get("Origin")
+        if origin:
+            host = self.headers.get("Host", "")
+            netloc = urllib.parse.urlsplit(origin).netloc
+            if netloc and netloc != host:
+                return True
+        return False
+
     def _read_json_body(self):
         length = int(self.headers.get("Content-Length", 0) or 0)
         if not length:
@@ -718,6 +735,10 @@ class Handler(http.server.BaseHTTPRequestHandler):
             if action and "text/html" in accept \
                     and "application/json" not in accept:
                 self.serve_index()
+                return
+            if action in MUTATING_ACTIONS and self._cross_site():
+                self._drain_body()
+                self.respond(403, {"error": "cross-site request blocked"})
                 return
             if action and action not in ("frame", "state"):
                 refresh_registry()
@@ -1180,6 +1201,9 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self.send_response(code)
         self.send_header("Content-Type", ctype)
         self.send_header("Content-Length", str(len(body)))
+        self.send_header("X-Content-Type-Options", "nosniff")
+        self.send_header("X-Frame-Options", "DENY")
+        self.send_header("Referrer-Policy", "no-referrer")
         if kind == "json":
             self.send_header("Cache-Control", "no-store")
         self.end_headers()
