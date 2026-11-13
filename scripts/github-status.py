@@ -1,7 +1,7 @@
 # github-status.py — open PRs, review requests and the latest CI result.
 #
 # State:
-#   gh_target   owner/repo, default CFBR/xpi
+#   gh_repo     owner/repo, default CFBR/xpi
 #   gh_branch   branch for the latest CI run, default main
 #   gh_refresh  seconds between API reads, minimum 60
 #   gh_seconds  seconds per page on the Micro Dot, default 3
@@ -22,10 +22,12 @@ DEFAULT_COLOR = (0, 255, 0)
 
 
 def target_text():
-    return _github.clean_target(
-        _xpi_state.value("gh_target")
-        or _xpi_state.value("repo")
-        or _github.DEFAULT_TARGET)
+    raw = _xpi_state.value("gh_repo") or _xpi_state.value("gh_target")
+    if raw:
+        kind, name = _github.target(raw)
+        if kind == "repo":
+            return name
+    return _github.DEFAULT_TARGET
 
 
 def branch():
