@@ -540,7 +540,15 @@ class Handler(http.server.BaseHTTPRequestHandler):
     protocol_version = "HTTP/1.1"
 
     def log_message(self, fmt, *args):
-        print("server: %s" % (fmt % args))
+        parts = urllib.parse.urlsplit(self.path)
+        action = (urllib.parse.parse_qs(parts.query).get("action") or [""])[0]
+        if parts.path == "/action=frame" or action == "frame":
+            return
+        label = parts.path or "/"
+        if action:
+            label += "?action=" + action
+        message = (fmt % args).replace(self.path, label)
+        print("server: %s" % message)
 
     # GET and POST share the same pipeline; POST body is parsed as QS.
     def do_GET(self):
@@ -556,6 +564,20 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 self.rfile.read(length)
             except OSError:
                 pass
+
+    def _read_json_body(self):
+        length = int(self.headers.get("Content-Length", 0) or 0)
+        if not length:
+            return {}
+        try:
+            raw = self.rfile.read(length)
+        except OSError:
+            return {}
+        try:
+            data = json.loads(raw.decode("utf-8"))
+        except (UnicodeDecodeError, ValueError):
+            return {}
+        return data if isinstance(data, dict) else {}
 
     def do_HEAD(self):
         self._drain_body()
@@ -587,7 +609,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 else:
                     self.respond(404, {"error": "no action"})
                 return
-            if action not in ("savescript", "savedrawing", "restore"):
+            if action not in ("savescript", "savedrawing", "restore",
+                              "saventfy"):
                 self._drain_body()
             if action in ("stop", "boot", "savescript", "delscript", "playlist",
                           "savegroup", "delgroup", "playgroup", "stopgroup",
@@ -898,6 +921,12 @@ class Handler(http.server.BaseHTTPRequestHandler):
         self.respond(200, {"ok": True, "active_group": None})
 
     def act_saventfy(self, params):
+        content_type = self.headers.get("Content-Type", "")
+        if content_type.split(";")[0].strip() == "application/json":
+            body = self._read_json_body()
+            for key in ("url", "topic", "token", "start"):
+                if key in body and key not in params:
+                    params[key] = [str(body[key])]
         url = (params.pop("url", ["https://ntfy.sh"])[0] or "").strip()
         url = url or "https://ntfy.sh"
         if "://" not in url:
