@@ -108,6 +108,10 @@ try:
 except ImportError:      # scripts/ missing: status just reports no ip
     def local_ip():
         return None
+try:
+    import _health
+except ImportError:
+    _health = None
 sys.path.pop(0)
 
 _state_lock = threading.Lock()
@@ -740,7 +744,7 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 self._drain_body()
                 self.respond(403, {"error": "cross-site request blocked"})
                 return
-            if action and action not in ("frame", "state"):
+            if action and action not in ("frame", "state", "health"):
                 refresh_registry()
             if not action:
                 if path in ("/", "/index.html"):
@@ -775,6 +779,11 @@ class Handler(http.server.BaseHTTPRequestHandler):
                 self.respond(200, _read_state(), "json")
             elif action == "frame":
                 self.respond(200, read_frame(), "json")
+            elif action == "health":
+                if _health is None:
+                    self.respond(503, {"error": "health helper missing"})
+                else:
+                    self.respond(200, _health.metrics(), "json")
             elif action == "getscript":
                 self.act_getscript(params)
             elif action == "savescript":

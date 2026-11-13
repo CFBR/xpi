@@ -31,6 +31,7 @@ Quote the whole URL in a shell, because `?` and `&` are shell metacharacters.
 | `?action=saventfy&url=<base>&topic=<topic>&token=<token>&start=1` | Save ntfy settings and optionally start the alert listener |
 | `?action=status` | Attached board, running script, pid, boot, scripts, boards, ip, revision, log. `?action=scripts` is an alias |
 | `?action=state` | The current `state.json` |
+| `?action=health` | CPU temperature, load, memory, disk, uptime and throttle |
 | `?action=frame` | The last frame the display libraries showed, for the live viewer |
 | `?action=getscript&script=<name>` | The script's source, as `{"script": ..., "code": ...}` |
 | `?action=savescript&script=<name>` | Write the POST body to that script. Must parse as Python |
@@ -143,7 +144,7 @@ are readable without the token.
 `?action=backup` returns one JSON object:
 
 ```json
-{"version": "2.7.1", "config": {}, "state": {}, "scripts": {"rain.py": "..."}}
+{"version": "2.8.0", "config": {}, "state": {}, "scripts": {"rain.py": "..."}}
 ```
 
 POST it back to `?action=restore` to write the scripts and config in. Useful

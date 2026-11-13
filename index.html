@@ -302,6 +302,29 @@ try {
     background: var(--well);
   }
 
+  .stack { display: grid; gap: 14px; align-content: start; min-width: 0; }
+  .healthGrid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+  }
+  .healthItem {
+    padding: 8px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: var(--well);
+  }
+  .healthItem span {
+    display: block;
+    font-size: 11px;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+    color: var(--muted);
+  }
+  .healthItem b { display: block; margin-top: 3px; font-size: 15px; }
+  .healthItem.bad b { color: #ff6b6b; }
+  .healthItem.warn b { color: #ffb454; }
+
   .matrixRow { display: flex; gap: 7px; align-items: center; }
   .matrix {
     display: grid;
@@ -586,6 +609,7 @@ try {
     </details>
   </section>
 
+  <div class="stack">
   <section class="card">
     <div class="cardhead">
       <h2>Board</h2>
@@ -645,6 +669,24 @@ try {
 
     <div class="canvaswrap"><div id="draw"></div></div>
   </section>
+
+  <section class="card system">
+    <div class="cardhead">
+      <h2>System</h2>
+      <span class="hint" id="healthNote">local metrics</span>
+    </div>
+    <div class="healthGrid">
+      <div class="healthItem"><span>temp</span><b id="healthTemp">…</b></div>
+      <div class="healthItem"><span>load</span><b id="healthLoad">…</b></div>
+      <div class="healthItem"><span>memory</span><b id="healthMemory">…</b></div>
+      <div class="healthItem"><span>disk</span><b id="healthDisk">…</b></div>
+      <div class="healthItem"><span>uptime</span><b id="healthUptime">…</b></div>
+      <div class="healthItem" id="healthThrottleItem">
+        <span>throttle</span><b id="healthThrottle">…</b>
+      </div>
+    </div>
+  </section>
+  </div>
 </main>
 
 <details class="card groups" id="groupsCard">
@@ -751,18 +793,55 @@ function scriptMatches(name, query) {
 
 /* ------------------------------------------------------------ refresh --- */
 
+function renderHealth(health) {
+  var note = document.getElementById("healthNote");
+  var temp = document.getElementById("healthTemp");
+  var load = document.getElementById("healthLoad");
+  var memory = document.getElementById("healthMemory");
+  var disk = document.getElementById("healthDisk");
+  var uptime = document.getElementById("healthUptime");
+  var throttle = document.getElementById("healthThrottle");
+  var item = document.getElementById("healthThrottleItem");
+  if (!health || health.error) {
+    [temp, load, memory, disk, uptime, throttle].forEach(function (el) {
+      el.textContent = "n/a";
+    });
+    item.className = "healthItem";
+    note.textContent = "unavailable";
+    return;
+  }
+  temp.textContent = health.temp_c == null
+    ? "n/a" : Number(health.temp_c).toFixed(1) + " C";
+  var loads = health.load || [];
+  load.textContent = loads.length ? Number(loads[0]).toFixed(2) : "n/a";
+  memory.textContent = Math.round(Number(health.mem_pct) || 0) + "%";
+  memory.title = (health.mem_used || 0) + " of " + (health.mem_total || 0) + " bytes";
+  disk.textContent = Math.round(Number(health.disk_pct) || 0) + "%";
+  disk.title = (health.disk_used || 0) + " of " + (health.disk_total || 0) + " bytes";
+  uptime.textContent = health.uptime_text || "n/a";
+  var throttleState = health.throttle || {};
+  var now = throttleState.now || [];
+  var occurred = throttleState.occurred || [];
+  throttle.textContent = now.length ? "alert" : (occurred.length ? "past" : "ok");
+  throttle.title = now.concat(occurred).join(", ") || "no throttle flags";
+  item.className = "healthItem" + (now.length ? " bad" : (occurred.length ? " warn" : ""));
+  note.textContent = "local";
+}
+
 async function refresh() {
   if (document.hidden) return;
   var seq = ++refreshSeq;
-  var status, design = {};
+  var status, design = {}, health = null;
   try {
     var parts = await Promise.all([
       fetch('/action=status', {cache: 'no-store'}),
-      fetch('/action=state', {cache: 'no-store'})
+      fetch('/action=state', {cache: 'no-store'}),
+      fetch('/action=health', {cache: 'no-store'})
     ]);
     if (!parts[0].ok) return;
     status = await parts[0].json();
     if (parts[1].ok) design = await parts[1].json() || {};
+    if (parts[2].ok) health = await parts[2].json() || null;
   } catch (e) { return; }
   if (seq !== refreshSeq) return;
   if (!status || typeof status !== "object") return;
@@ -796,6 +875,7 @@ async function refresh() {
   syncSnakePath(design);
   syncSocial(design);
   syncNtfy(state.ntfy);
+  renderHealth(health);
   fillEditorList();
 
   if (state.running !== "draw") wasDraw = false;
