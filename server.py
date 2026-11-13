@@ -10,6 +10,7 @@ import http.server
 import json
 import os
 import re
+import select
 import signal
 import socket
 import subprocess
@@ -349,25 +350,89 @@ def clear_target():
     return None
 
 
+_clear_proc = None
+_clear_lock = threading.Lock()
+
+
+def _clear_reply(proc, timeout=10):
+    deadline = time.time() + timeout
+    while time.time() < deadline:
+        wait = max(0.0, deadline - time.time())
+        ready, _, _ = select.select([proc.stdout], [], [], wait)
+        if not ready:
+            return None
+        line = proc.stdout.readline()
+        if not line:
+            return None
+        line = line.strip()
+        if line.startswith("OK") or line.startswith("ERR"):
+            return line
+    return None
+
+
+def clear_via_daemon(target):
+    """Clear through a warm helper process, or return False to use clear.py."""
+    global _clear_proc
+    with _clear_lock:
+        if _clear_proc is None or _clear_proc.poll() is not None:
+            _clear_proc = subprocess.Popen(
+                [sys.executable, "-u", os.path.join(SUPPORT_DIR, "clear_daemon.py")],
+                cwd=SUPPORT_DIR, env=child_env(),
+                stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT, text=True, bufsize=1)
+        try:
+            _clear_proc.stdin.write((target or "all") + "\n")
+            _clear_proc.stdin.flush()
+            reply = _clear_reply(_clear_proc)
+        except (OSError, ValueError) as exc:
+            reply = "ERR %s" % exc
+        if reply and reply.startswith("OK"):
+            return True
+        print("server: clear daemon failed:", reply or "timeout")
+        try:
+            _clear_proc.kill()
+        except OSError:
+            pass
+        _clear_proc = None
+        return False
+
+
+def stop_clear_daemon():
+    global _clear_proc
+    with _clear_lock:
+        if _clear_proc is not None:
+            try:
+                _clear_proc.terminate()
+            except OSError:
+                pass
+            _clear_proc = None
+
+
 def clear_board():
     result = None
     target = clear_target()
-    cmd = [sys.executable, os.path.join(SCRIPTS_DIR, "clear.py")]
-    if target:
-        cmd.append(target)
+    started = time.time()
     with _sup_lock:
         stop_child()
-        try:
-            result = subprocess.run(
-                cmd,
-                cwd=SCRIPTS_DIR, env=child_env(), timeout=5,
-                stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-            out = result.stdout
-        except subprocess.TimeoutExpired as exc:
-            # a board probe hanging (e.g. no display of the other kind
-            # attached) must never block switching; wipe what responded
-            out = exc.stdout or b""
-            out += b"\n[clear timed out; wiped what responded]\n"
+        if clear_via_daemon(target):
+            out = b"clear.py: direct clear\n"
+            result = 0
+        else:
+            cmd = [sys.executable, os.path.join(SCRIPTS_DIR, "clear.py")]
+            if target:
+                cmd.append(target)
+            try:
+                result = subprocess.run(
+                    cmd,
+                    cwd=SCRIPTS_DIR, env=child_env(), timeout=5,
+                    stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+                out = result.stdout
+            except subprocess.TimeoutExpired as exc:
+                # a board probe hanging (e.g. no display of the other kind
+                # attached) must never block switching; wipe what responded
+                out = exc.stdout or b""
+                out += b"\n[clear timed out; wiped what responded]\n"
+    out += ("\n[clear %.2fs]\n" % (time.time() - started)).encode()
     with _log_lock:
         _log_chunks.clear()
         for i in range(0, len(out), 128):
@@ -1104,6 +1169,7 @@ def main():
     def shutdown(signum, frame):
         print("server: signal %s; stopping" % signum)
         stop_child()
+        stop_clear_daemon()
         raise SystemExit(0)
 
     signal.signal(signal.SIGTERM, shutdown)
