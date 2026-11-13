@@ -1175,17 +1175,6 @@ function shapeOf(attached) {
   return { c: 8, r: 8, mono: false };
 }
 
-function visibleCols(shape) {
-  var cols = [];
-  if (shape.mono && shape.c === 45) {
-    for (var m = 0; m < 6; m++)
-      for (var c = 0; c < 5; c++) cols.push(m * 8 + c);
-  } else {
-    for (var x = 0; x < shape.c; x++) cols.push(x);
-  }
-  return cols;
-}
-
 function cellSizeFor(shape) {
   /* Viewport based: the canvas wrap grows with its content, so measuring it
      would feed the previous size back in. */
@@ -1291,23 +1280,6 @@ function setTextColor(value) {
 }
 
 function keyOf(x, y) { return x + "," + y; }
-
-var COLOR_NAMES = {
-  red: "#ff0000", green: "#00ff00", blue: "#0000ff", white: "#ffffff",
-  yellow: "#ffff00", orange: "#ff8000", purple: "#8000ff",
-  magenta: "#ff00ff", cyan: "#00ffff", pink: "#ff4080"
-};
-
-function colorCss(value) {
-  var text = String(value == null ? "" : value).trim().toLowerCase();
-  if (COLOR_NAMES[text]) return COLOR_NAMES[text];
-  if (/^#?[0-9a-f]{6}$/.test(text)) return "#" + text.replace("#", "");
-  if (/^#?[0-9a-f]{3}$/.test(text)) {
-    var t = text.replace("#", "");
-    return "#" + t[0] + t[0] + t[1] + t[1] + t[2] + t[2];
-  }
-  return "#e6e6e6";
-}
 
 function paintCell(x, y, val) {
   if (!shapeNow || x < 0 || y < 0 || x >= shapeNow.c || y >= shapeNow.r) return;
@@ -1616,66 +1588,6 @@ brightInput.addEventListener("change", function () {
 
 /* ------------------------------------------ what the board is showing --- */
 
-/* tiny 3x5 font for the preview only (message/hostname/timer scroll) */
-var P3X5 = function (ch) {
-  return FONT_MINI[ch] || FONT_MINI["?"];
-};
-var FONT_MINI = {
-  "A": ["010","101","111","101","101"],
-  "B": ["110","101","110","101","110"],
-  "C": ["011","100","100","100","011"],
-  "D": ["110","101","101","101","110"],
-  "E": ["111","100","110","100","111"],
-  "F": ["111","100","110","100","100"],
-  "G": ["011","100","101","101","011"],
-  "H": ["101","101","111","101","101"],
-  "I": ["111","010","010","010","111"],
-  "K": ["101","110","101","101","101"],
-  "L": ["100","100","100","100","111"],
-  "M": ["101","111","111","101","101"],
-  "N": ["101","111","111","111","101"],
-  "J": ["001","001","001","101","010"],
-  "X": ["101","101","010","101","101"],
-  "Z": ["111","001","010","100","111"],
-  "O": ["010","101","101","101","010"],
-  "P": ["110","101","110","100","100"],
-  "R": ["110","101","110","101","101"],
-  "S": ["011","100","010","001","110"],
-  "T": ["111","010","010","010","010"],
-  "U": ["101","101","101","101","011"],
-  "V": ["101","101","101","010","010"],
-  "W": ["101","101","111","111","101"],
-  "Y": ["101","101","010","010","010"],
-  "0": ["010","101","101","101","010"],
-  "1": ["010","110","010","010","111"],
-  "2": ["110","001","010","100","111"],
-  "3": ["110","001","110","001","110"],
-  "4": ["101","101","111","001","001"],
-  "5": ["111","100","110","001","110"],
-  "6": ["011","100","110","101","010"],
-  "7": ["111","001","010","010","010"],
-  "8": ["010","101","010","101","010"],
-  "9": ["010","101","011","001","110"],
-  " ": ["000","000","000","000","000"],
-  ":": ["000","010","000","010","000"],
-  "-": ["000","000","111","000","000"],
-  ".": ["000","000","000","000","010"],
-  "?": ["110","001","010","000","010"]
-};
-
-function textGrid(text) {
-  var rows = [];
-  for (var y = 0; y < 5; y++) rows.push([]);
-  for (var i = 0; i < text.length; i++) {
-    var g = P3X5(text[i]);
-    for (var yy = 0; yy < 5; yy++) {
-      for (var xx = 0; xx < 3; xx++) rows[yy].push(Number(g[yy][xx]));
-      rows[yy].push(0);
-    }
-  }
-  return rows;
-}
-
 function makeLedGrid(shape, cells) {
   var wrap = document.createElement("div");
   if (shape.mono && shape.c === 45) {
@@ -1745,27 +1657,6 @@ async function apiFetch(url, options) {
   options.headers = apiHeaders(options.headers);
   options.headers["X-XPI-Token"] = token;
   return fetch(url, options);
-}
-
-/* --------------------------------------------------------- time helpers --- */
-
-function secondsToMidnight() {
-  var now = new Date();
-  var midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
-  return Math.max(0, (midnight - now) / 1000);
-}
-
-function hhmmss(total) {
-  var secs = Math.max(0, Math.floor(total));
-  var h = Math.floor(secs / 3600);
-  var m = Math.floor((secs % 3600) / 60);
-  var s = secs % 60;
-  return (h < 10 ? "0" : "") + h + ":" + (m < 10 ? "0" : "") + m + ":"
-    + (s < 10 ? "0" : "") + s;
-}
-
-function fastCount() {
-  return Math.round(999999 * secondsToMidnight() / 86400);
 }
 
 function frameMatches(frame) {
@@ -1895,102 +1786,10 @@ function renderPreview(designState) {
   var box = document.getElementById("preview");
   box.innerHTML = "";
   var shape = shapeOf(state.attached);
+  box.appendChild(makeLedGrid(shape, []));
   var note = document.getElementById("previewNote");
-  var cells = [];
-  var cols = visibleCols(shape);
-  var textColor = shape.mono ? "#e6e6e6" : colorCss(designState && designState.color);
-
-  var fillTextPreview = function (text) {
-    var rows = textGrid(text);
-    var off = Math.floor((Date.now() / 120) % rows[0].length);
-    for (var y = 0; y < Math.min(5, shape.r); y++) {
-      for (var i = 0; i < cols.length; i++) {
-        cells[y * shape.c + cols[i]] = rows[y][(i + off) % rows[0].length]
-          ? textColor : null;
-      }
-    }
-  };
-
-  var runningScript = state.running || "";
-  if (runningScript === "draw" && designState && designState.pixels != null) {
-    var pxs = [];
-    try { pxs = JSON.parse(designState.pixels); } catch (e) {}
-    pxs.forEach(function (p) {
-      if (Array.isArray(p) && p.length >= 2 && typeof p[0] === "number")
-        cells[p[1] * shape.c + p[0]] = (p[2] || (shape.mono ? "#e6e6e6" : "#fff"));
-    });
-    note.textContent = "exact pixels on the board";
-  } else if (runningScript === "message" || runningScript === "unicorn_message") {
-    fillTextPreview(String(designState.message || "hi").toUpperCase());
-    note.textContent = "scrolling text";
-  } else if (runningScript === "timer") {
-    var left = Math.max(0, (designState.seconds || 60) - 1);
-    var mm = Math.floor(left / 60), ss = left % 60;
-    fillTextPreview(mm + ":" + (ss < 10 ? "0" : "") + ss);
-    note.textContent = "countdown (approx)";
-  } else if (runningScript === "hostname") {
-    fillTextPreview(String(designState.hostname || "pi").toUpperCase());
-    note.textContent = "scrolling hostname";
-  } else if (runningScript === "clock" || runningScript === "digital-clock") {
-    var now = new Date();
-    fillTextPreview(("0" + now.getHours()).slice(-2) + ":"
-                    + ("0" + now.getMinutes()).slice(-2));
-    note.textContent = "clock";
-  } else if (runningScript === "day-countdown") {
-    fillTextPreview(hhmmss(secondsToMidnight()));
-    note.textContent = "time left in the day";
-  } else if (runningScript === "fast-countdown") {
-    fillTextPreview(String(fastCount()));
-    note.textContent = "999999 scaled to the day";
-  } else if (runningScript === "nanoseconds") {
-    fillTextPreview(String(Date.now() % 1000000).padStart(6, "0"));
-    note.textContent = "changes at every refresh";
-  } else if (runningScript === "ip") {
-    fillTextPreview(((state.hostname || "pi") + " " + (state.ip || "")).toUpperCase());
-    note.textContent = "hostname and ip";
-  } else if (runningScript === "tally") {
-    fillTextPreview(String((designState && designState.count) || "0"));
-    note.textContent = "tally";
-  } else if (runningScript === "progress") {
-    var pct = Math.max(0, Math.min(100, Number((designState && designState.percent) || 0)));
-    for (var py = 0; py < shape.r; py++)
-      for (var i = 0; i < cols.length; i++)
-        if (i < Math.round(cols.length * pct / 100))
-          cells[py * shape.c + cols[i]] = textColor;
-    note.textContent = pct + "%";
-  } else if (runningScript === "solid") {
-    for (var sy = 0; sy < shape.r; sy++)
-      for (var sx = 0; sx < shape.c; sx++) cells[sy * shape.c + sx] = textColor;
-    note.textContent = "solid " + (designState.color || "white");
-  } else if (runningScript === "snake") {
-    var snakePath = [];
-    var visCols = Math.floor((shape.c + 3) / 8) * 5;
-    if (designState && designState.snake_path === "sideways") {
-      for (var ny = 0; ny < shape.r; ny++) {
-        for (var nx = 0; nx < visCols; nx++) {
-          var px = ny % 2 ? nx : visCols - 1 - nx;
-          snakePath.push([Math.floor(px / 5) * 8 + px % 5, ny]);
-        }
-      }
-    } else {
-      for (var nx = 0; nx < visCols; nx++) {
-        var bx = Math.floor(nx / 5) * 8 + nx % 5;
-        for (var ny = 0; ny < shape.r; ny++)
-          snakePath.push([bx, nx % 2 ? shape.r - 1 - ny : ny]);
-      }
-    }
-    var period = 42, phase = Math.floor(Date.now() / 120) % period;
-    for (var ni = 0; ni < snakePath.length; ni++) {
-      if ((ni - phase + period) % period < 8)
-        cells[snakePath[ni][1] * shape.c + snakePath[ni][0]] = textColor;
-    }
-    note.textContent = "snakes crawling the LEDs";
-  } else if (runningScript) {
-    note.textContent = "'" + runningScript + "' drives the hardware, no preview";
-  } else {
-    note.textContent = "nothing running";
-  }
-  box.appendChild(makeLedGrid(shape, cells));
+  note.textContent = "waiting for a live frame";
+  note.title = "";
 }
 
 /* ------------------------------------------ script upload / edit / delete --- */
