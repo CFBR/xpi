@@ -13,6 +13,7 @@ load.
 | `pi-health` | CPU temperature, load, memory, disk, uptime and throttle |
 | `github-status` | Open PRs, review requests and the latest CI result |
 | `binary-clock` | BCD time and date on the six Micro Dot matrices |
+| `ha-sensor` | One Home Assistant or MQTT sensor, with a unit |
 | `timer` | Countdown from `state.json` `seconds` |
 | `hostname` | Scrolls the Pi's hostname on either board |
 | `ip` | Scrolls hostname and LAN address on either board |
@@ -83,6 +84,7 @@ Optional dependencies:
 
 - `figlet.py` needs pyfiglet.
 - `image` needs Pillow. `install.sh` installs `python3-pil`, so the Pi has it.
+- `ha-sensor` needs paho-mqtt only for MQTT mode.
 
 Both exit with a message when the module is missing. `weather-icons.py` needs
 the `weather-icons/` folder beside it, which it has.
