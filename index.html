@@ -547,6 +547,26 @@ try {
     </div>
 
     <div class="row">
+      <label class="field">crypto
+        <select id="cryptoCoin">
+          <option value="bitcoin">bitcoin</option>
+          <option value="ethereum">ethereum</option>
+          <option value="monero">monero</option>
+          <option value="bitcoin,ethereum,monero">all three</option>
+        </select>
+      </label>
+      <label class="field">show
+        <select id="cryptoShow">
+          <option value="price" selected>price only</option>
+          <option value="change">price and change</option>
+          <option value="all">full cycle</option>
+        </select>
+      </label>
+      <button onclick="showCrypto()">Show price</button>
+      <span class="hint">updates every 2 min</span>
+    </div>
+
+    <div class="row">
       <label class="field">ntfy
         <input id="ntfyUrl" placeholder="https://ntfy.sh" size="18">
       </label>
@@ -874,6 +894,7 @@ async function refresh() {
   syncDensity(design);
   syncSnakePath(design);
   syncSocial(design);
+  syncCrypto(design);
   syncNtfy(state.ntfy);
   renderHealth(health);
   fillEditorList();
@@ -1627,6 +1648,30 @@ function showSocial() {
       + '&social_target=' + encodeURIComponent(target)
       + '&social_metric=' + encodeURIComponent(metric)
       + '&script=social-stats', 'social-stats');
+}
+
+function syncCrypto(design) {
+  var coin = document.getElementById('cryptoCoin');
+  var show = document.getElementById('cryptoShow');
+  if ([coin, show].indexOf(document.activeElement) >= 0 || !design) return;
+  var aliases = {btc: 'bitcoin', eth: 'ethereum', xmr: 'monero'};
+  var value = String(design.crypto_coins || '').split(',').map(function (name) {
+    name = name.trim().toLowerCase();
+    return aliases[name] || name;
+  }).filter(Boolean).join(',');
+  if (value === 'bitcoin,ethereum,monero'
+      || ['bitcoin', 'ethereum', 'monero'].indexOf(value) >= 0) {
+    coin.value = value;
+  }
+  var mode = String(design.crypto_show || 'all');
+  if (['price', 'change', 'all'].indexOf(mode) >= 0) show.value = mode;
+}
+
+function showCrypto() {
+  act('update', 'script=crypto-price'
+      + '&crypto_coins=' + encodeURIComponent(document.getElementById('cryptoCoin').value)
+      + '&crypto_show=' + encodeURIComponent(document.getElementById('cryptoShow').value),
+      'crypto-price');
 }
 
 function syncNtfy(info) {

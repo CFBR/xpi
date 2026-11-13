@@ -135,3 +135,18 @@ def draw_unicorn(grid, offset, shape, color):
             if grid[y][src] and y0 + y < h:
                 unicornhat.set_pixel(x, y0 + y, r, g, b)
     unicornhat.show()
+
+
+def draw_unicorn_centered(grid, shape, color):
+    """Draw a short grid centered; one show() per call."""
+    w, h = shape
+    import unicornhat
+    r, g, b = color
+    x0 = max(0, (w - len(grid[0])) // 2)
+    y0 = max(0, (h - 5) // 2)
+    unicornhat.clear()
+    for y in range(5):
+        for x in range(min(len(grid[0]), w - x0)):
+            if grid[y][x]:
+                unicornhat.set_pixel(x0 + x, y0 + y, r, g, b)
+    unicornhat.show()

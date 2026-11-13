@@ -5,6 +5,7 @@
 #   crypto_currency  usd, eur, gbp, or another CoinGecko currency
 #   crypto_refresh   seconds between API reads, minimum 60
 #   crypto_seconds   seconds per page, default 3
+#   crypto_show      price, change, or all (default all)
 #   color            Unicorn color name or #RRGGBB
 #
 # Prices come from the public CoinGecko simple price endpoint. A failed read
@@ -61,6 +62,11 @@ def page_seconds():
         return max(1.0, min(30.0, float(_xpi_state.value("crypto_seconds") or 3)))
     except (TypeError, ValueError):
         return 3.0
+
+
+def show_mode():
+    value = str(_xpi_state.value("crypto_show") or "all").strip().lower()
+    return value if value in ("price", "change", "all") else "all"
 
 
 def symbol(coin):
@@ -136,23 +142,30 @@ def fetch(previous):
 def pages(data):
     if not data:
         return ["--"]
+    mode = show_mode()
     result = []
     for coin in data:
-        result.append(coin["symbol"])
+        if mode == "all":
+            result.append(coin["symbol"])
         result.append(compact_price(coin["price"]))
-        result.append(change_text(coin["change"]))
+        if mode in ("change", "all"):
+            result.append(change_text(coin["change"]))
     return result
 
 
-def summary(coin, currency_code):
+def summary(coin, currency_code, mode):
     if coin is None:
         return "NO DATA"
+    if mode == "price":
+        return compact_price(coin["price"])
     if coin["change"] is None:
         change = "NA"
     elif coin["change"] >= 0:
         change = "UP%.1f" % coin["change"]
     else:
         change = "DN%.1f" % abs(coin["change"])
+    if mode == "change":
+        return "%s %s" % (compact_price(coin["price"]), change)
     return "%s %s %s %s" % (
         coin["symbol"], compact_price(coin["price"]),
         currency_code.upper(), change)
@@ -186,18 +199,23 @@ def run_unicorn():
         if time.time() - last >= refresh_seconds():
             data = fetch(data)
             last = time.time()
+        mode = show_mode()
         for coin in data or [None]:
-            grid = _display.text_bitmap(summary(coin, currency()))
+            grid = _display.text_bitmap(summary(coin, currency(), mode))
+            color = _display.parse_color(
+                _xpi_state.value("color"), DEFAULT_COLOR)
+            if mode != "price" and coin is not None:
+                if coin["change"] is not None and coin["change"] < 0:
+                    color = (255, 64, 64)
+                elif coin["change"] is not None:
+                    color = (64, 255, 64)
+            if mode == "price" and len(grid[0]) <= shape[0]:
+                _display.draw_unicorn_centered(grid, shape, color)
+                time.sleep(page_seconds())
+                continue
             offset = 0
             end = time.time() + page_seconds()
             while time.time() < end:
-                color = _display.parse_color(
-                    _xpi_state.value("color"), DEFAULT_COLOR)
-                if coin is not None:
-                    if coin["change"] is not None and coin["change"] < 0:
-                        color = (255, 64, 64)
-                    elif coin["change"] is not None:
-                        color = (64, 255, 64)
                 _display.draw_unicorn(grid, offset, shape, color)
                 offset += 1
                 time.sleep(0.05)
