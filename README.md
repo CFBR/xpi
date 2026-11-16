@@ -56,3 +56,13 @@ under the MIT license:
 [unicorn-hat](https://github.com/pimoroni/unicorn-hat). See
 [`vendor/README.md`](vendor/README.md) for the exact commits, and `LICENSES/`
 for the license texts. xpi itself is MIT, see `LICENSE`.
+
+## Secret scanning
+
+The repository ships pre-commit and pre-push hooks that scan for secrets. Install them once per clone:
+
+```sh
+scripts/install-git-hooks.sh
+```
+
+The scanner blocks likely secrets, `.env` files, and private key files. It allows placeholders and a line-level `# secret-scan: allow` comment.
