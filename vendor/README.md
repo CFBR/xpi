@@ -68,6 +68,11 @@ examples that use `set_layout(AUTO)` drew a 16x8 HAT shape on an 8x4 pHAT.
 `AUTO` still picks HAT when the HAT EEPROM is present. The change is marked
 `# --- xpi: auto-detect HAT or pHAT`.
 
+The warm clear daemon calls `unicornhat.cleanup()` after it blanks the board.
+`cleanup()` frees the ws2811 handle and leaves the module imported, so the
+next script can open its own handle. Without this, the daemon and the script
+could both hold the LED driver while only one of them reached the strip.
+
 Both `show()` functions also publish the frame they just drew through
 `support/_xpi_frame.py`. That block is marked
 `# --- xpi: publish the frame for the live viewer`. The server serves it at

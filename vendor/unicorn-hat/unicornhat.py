@@ -248,12 +248,30 @@ def get_shape():
     return (len(_map), len(_map[0]))
 
 
+def cleanup():
+    """Release the LED driver so another process can use it.
+
+    The clear daemon keeps this module imported, but it must not keep the
+    ws2811 handle open while a display script starts its own handle.
+    """
+
+    global ws2812, _is_setup
+    if ws2812 is not None:
+        try:
+            ws2812._cleanup()
+        except Exception:
+            pass
+    ws2812 = None
+    _is_setup = False
+
+
 def _clean_shutdown():
     """Registered at exit to ensure ws2812 cleans up after itself
     and all pixels are turned off.
     """
 
-    off()
+    if _is_setup and ws2812 is not None:
+        off()
 
 
 def rotation(r=0):
