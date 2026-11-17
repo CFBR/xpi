@@ -1,4 +1,4 @@
 #!/bin/sh
 set -eu
 repo_root=$(git rev-parse --show-toplevel)
-exec python3 "$repo_root/scripts/check-secrets.py" --staged
+exec python3 "$repo_root/tools/check-secrets.py" --staged

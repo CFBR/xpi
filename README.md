@@ -62,7 +62,7 @@ for the license texts. xpi itself is MIT, see `LICENSE`.
 The repository ships pre-commit and pre-push hooks that scan for secrets. Install them once per clone:
 
 ```sh
-scripts/install-git-hooks.sh
+tools/install-git-hooks.sh
 ```
 
 The scanner blocks likely secrets, `.env` files, and private key files. It allows placeholders and a line-level `# secret-scan: allow` comment.
