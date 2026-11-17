@@ -21,8 +21,13 @@ def clear(target=None):
             import unicornhat
             import _display
             shape, unicorn = _display.setup_unicorn()
-            unicorn.clear()
-            unicorn.show()
+            try:
+                unicorn.clear()
+                unicorn.show()
+            finally:
+                cleanup = getattr(unicorn, "cleanup", None)
+                if cleanup is not None:
+                    cleanup()
         except Exception as exc:
             errors.append("unicorn: %s" % exc)
     if errors and wanted:
