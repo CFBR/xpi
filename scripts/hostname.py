@@ -70,9 +70,8 @@ def run_unicorn(text, color=None):
                 grid = _display.text_bitmap(text)
                 offset = 0
                 print("hostname.py: switched to", text)
-        _display.draw_unicorn(grid, offset, shape, color)
-        offset += 1
-        time.sleep(0.05)
+        offset = _display.draw_unicorn_fit(grid, offset, shape, color)
+        time.sleep(_display.scroll_delay(shape))
 
 
 def main():

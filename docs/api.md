@@ -20,6 +20,7 @@ Quote the whole URL in a shell, because `?` and `&` are shell metacharacters.
 | `?action=update&brightness=0.4` | Brightness, 0 to 1, on either board |
 | `?action=update&speed=2.0` | Scale `time.sleep` for any script, including the Pimoroni examples |
 | `?action=update&color=red` | Text or fill color, by name or `#RRGGBB` |
+| `?action=update&percent=40` | Progress bar value, 0 to 100 |
 | `?action=update&unicorn_tint=%2300ffff` | Tint every Unicorn pixel; empty clears the tint |
 | `?action=stop` | Kill the script. Its last frame stays on the board |
 | `?action=clear` | Kill the script and blank the board |

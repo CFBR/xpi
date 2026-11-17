@@ -89,7 +89,7 @@ def run_scroll():
             carry -= step
             offset += step * direction()
         _display.draw_unicorn(grid, offset, shape, color)
-        time.sleep(0.05)
+        time.sleep(_display.scroll_delay(shape))
 
 
 def run_words():
@@ -127,7 +127,7 @@ def run_words():
                     level = (frames - frame) / float(fade_frames)
             unicornhat.brightness(max(0.05, level))
             _display.draw_unicorn(grid, offset, shape, color)
-            time.sleep(0.05)
+            time.sleep(_display.scroll_delay(shape))
         unicornhat.brightness(1.0)
         index += 1
 

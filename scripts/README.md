@@ -63,7 +63,7 @@ script by what it imports, so it lands on the right board tab; see
 
 A script just has to drive the board and stop when the server kills it. For
 state, `_xpi_state.py` reads `state.json`. For text, `_display.py` has the
-shared 3x5 renderer and color parser.
+shared 3x5 renderer, compact 3x4 renderer for the 8x4 pHAT, and color parser.
 
 ## Pimoroni examples
 

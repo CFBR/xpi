@@ -30,7 +30,6 @@ except ImportError:
     Image = None
 
 EXTENSIONS = (".png", ".gif", ".jpg", ".jpeg", ".bmp", ".webp")
-SCROLL_DELAY = 0.06     # seconds per column, scaled by state.json "speed"
 HOLD_SECONDS = 3.0      # how long a folder image stays before the next
 POLL_SECONDS = 1.0      # how often a single file's mtime is checked
 DEFAULT_FRAME_MS = 100  # frame delay for an animation that declares none
@@ -124,7 +123,7 @@ def scroll(picture, shape, unicornhat, repeat):
             canvas = Image.new("RGB", shape, BACKGROUND)
             canvas.paste(picture, (offset, 0))
             paint(canvas, unicornhat)
-            time.sleep(SCROLL_DELAY)
+            time.sleep(_display.scroll_delay(shape))
         if not repeat:
             return
 

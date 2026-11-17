@@ -63,7 +63,7 @@ def run_unicorn():
                 print("ip.py: switched to", text)
         _display.draw_unicorn(grid, offset, shape, color)
         offset += 1
-        time.sleep(0.05)
+        time.sleep(_display.scroll_delay(shape))
 
 
 def main():

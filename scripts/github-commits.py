@@ -122,9 +122,8 @@ def run_unicorn():
             last_revision = new_revision
             color = _display.parse_color(_xpi_state.value("color"), DEFAULT_COLOR)
 
-        _display.draw_unicorn(grid, offset, shape, color)
-        offset += 1
-        time.sleep(0.05)
+        offset = _display.draw_unicorn_fit(grid, offset, shape, color)
+        time.sleep(_display.scroll_delay(shape))
 
 
 def main():

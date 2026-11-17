@@ -669,6 +669,12 @@ try {
       <span class="hint">raindrop and rainfall</span>
     </div>
     <div class="row">
+      <label class="field" for="progress">progress</label>
+      <input id="progress" type="range" min="0" max="100" step="1" value="50">
+      <span class="hint" id="progressVal">50%</span>
+      <span class="hint">progress script</span>
+    </div>
+    <div class="row">
       <label class="field">snake
         <select id="snakePath">
           <option value="down">down</option>
@@ -914,6 +920,7 @@ async function refresh() {
   syncBrightness(design);
   syncSpeed(design);
   syncDensity(design);
+  syncProgress(design);
   syncSnakePath(design);
   syncTint(design);
   syncSocial(design);
@@ -1634,6 +1641,28 @@ densityInput.addEventListener("input", function () {
 densityInput.addEventListener("change", function () {
   densityDragging = false;
   act('update', 'density=' + (densityInput.value / 100).toFixed(2));
+});
+
+var progressInput = document.getElementById("progress");
+var progressDragging = false;
+
+function syncProgress(design) {
+  if (progressDragging) return;
+  var v = design && design.percent != null ? Number(design.percent) : 50;
+  if (!isFinite(v)) v = 50;
+  v = Math.max(0, Math.min(100, v));
+  progressInput.value = Math.round(v);
+  document.getElementById("progressVal").textContent = Math.round(v) + "%";
+}
+
+progressInput.addEventListener("input", function () {
+  progressDragging = true;
+  document.getElementById("progressVal").textContent = progressInput.value + "%";
+});
+
+progressInput.addEventListener("change", function () {
+  progressDragging = false;
+  act('update', 'percent=' + progressInput.value);
 });
 
 var snakePathInput = document.getElementById("snakePath");

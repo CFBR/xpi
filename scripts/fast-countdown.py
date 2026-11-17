@@ -63,7 +63,7 @@ def run_unicorn():
             color = _display.parse_color(_xpi_state.value("color"), DEFAULT_COLOR)
         _display.draw_unicorn(grid, offset, shape, color)
         offset += 1
-        time.sleep(0.01)
+        time.sleep(_display.scroll_delay(shape) * 0.4)
 
 
 def main():

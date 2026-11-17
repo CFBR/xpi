@@ -112,20 +112,22 @@ def draw_microdot(text, slots):
 
 
 def draw_unicorn(text, shape, unicornhat, color):
-    grid = _display.text_bitmap(text)
     width, height = shape
+    grid = _display.text_bitmap(text, rows=height)
+    rows = min(len(grid), height)
     x0 = max(0, (width - len(grid[0])) // 2)
-    y0 = max(0, (height - 5) // 2)
+    y0 = max(0, (height - rows) // 2)
     r, g, b = color
     unicornhat.clear()
-    for y in range(min(5, height)):
+    for y in range(rows):
         for x in range(min(len(grid[0]), width - x0)):
             if grid[y][x]:
                 unicornhat.set_pixel(x0 + x, y0 + y, r, g, b)
     unicornhat.show()
 
 
-def run_effect(draw, slots):
+def run_effect(draw, slots, delay=None):
+    delay = delay or frame_delay
     words = get_words()
     index = 0
     revision = _xpi_state.revision()
@@ -139,7 +141,7 @@ def run_effect(draw, slots):
                 index = 0
                 print("decrypt-text.py: switched to", " ".join(words))
         word = words[index % len(words)]
-        show_word(word, draw, slots, frame_delay, hold_seconds)
+        show_word(word, draw, slots, delay, hold_seconds)
         index += 1
 
 
@@ -168,7 +170,8 @@ def run_unicorn():
         draw_unicorn(text, shape, unicornhat, color)
 
     print("decrypt-text.py: unicorn", shape, slots, "characters")
-    return run_effect(draw, slots)
+    delay = lambda: _display.scroll_delay(shape) / speed()
+    return run_effect(draw, slots, delay)
 
 
 def main():
