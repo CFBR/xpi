@@ -20,6 +20,7 @@ Quote the whole URL in a shell, because `?` and `&` are shell metacharacters.
 | `?action=update&brightness=0.4` | Brightness, 0 to 1, on either board |
 | `?action=update&speed=2.0` | Scale `time.sleep` for any script, including the Pimoroni examples |
 | `?action=update&color=red` | Text or fill color, by name or `#RRGGBB` |
+| `?action=update&unicorn_tint=%2300ffff` | Tint every Unicorn pixel; empty clears the tint |
 | `?action=stop` | Kill the script. Its last frame stays on the board |
 | `?action=clear` | Kill the script and blank the board |
 | `?action=boot&script=<name>` | Set the script that starts with the service. `none` unsets it |
@@ -72,6 +73,9 @@ Scripts stay live without a restart by polling `revision()` from
 `value()`.
 
 `brightness` scales whatever the running script sets, on either board.
+`unicorn_tint` is a `#RRGGBB` color that maps every lit Unicorn pixel to a
+shade of that color. It applies to any Unicorn script, including the untouched
+Pimoroni examples. An empty value turns it off.
 `speed` divides the delay in `time.sleep`, for any script, including the
 untouched Pimoroni examples.
 

@@ -18,5 +18,5 @@ while read -r local_ref local_sha remote_ref remote_sha; do
     else
         range="$remote_sha..$local_sha"
     fi
-    python3 "$repo_root/scripts/check-secrets.py" --range "$range" || exit 1
+    python3 "$repo_root/tools/check-secrets.py" --range "$range" || exit 1
 done

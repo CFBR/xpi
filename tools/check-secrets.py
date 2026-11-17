@@ -9,7 +9,7 @@ import subprocess
 import sys
 
 SELF_SKIP = {
-    "scripts/check-secrets.py",
+    "tools/check-secrets.py",
     ".githooks/pre-commit",
     ".githooks/pre-push",
 }

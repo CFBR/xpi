@@ -824,7 +824,8 @@ class Handler(http.server.BaseHTTPRequestHandler):
             tail = parse.path.lstrip("/")
             if tail.startswith("action="):
                 qs = tail          # tolerate /action=update&script=... (no ?)
-        return urllib.parse.parse_qs(qs)
+        # keep empty values so ?action=update&unicorn_tint= clears a key
+        return urllib.parse.parse_qs(qs, keep_blank_values=True)
 
     def authorized(self, params):
         """True when no token is configured, or the request carries it."""
