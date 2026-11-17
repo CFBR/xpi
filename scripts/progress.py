@@ -41,7 +41,7 @@ def run_microdot():
             microdotphat.clear()
             for x in range(filled):
                 for y in range(height):
-                    microdotphat.set_pixel(x, y, 1)
+                    microdotphat.set_pixel(_dot.buffer_x(x), y, 1)
             microdotphat.show()
             print("progress.py: %d%%" % value)
         time.sleep(0.2)
