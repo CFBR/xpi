@@ -56,7 +56,7 @@ def run_unicorn():
         grid = _display.text_bitmap(text)
         for frame in range(20):
             _display.draw_unicorn(grid, frame, shape, color)
-            time.sleep(0.05)
+            time.sleep(_display.scroll_delay(shape))
         left -= 1
         if left < 0:
             phase = "break" if phase == "work" else "work"

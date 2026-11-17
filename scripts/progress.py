@@ -7,23 +7,28 @@
 import time
 
 import _display
+import _dot
 import _xpi_state
 
 DEFAULT_COLOR = (0, 255, 255)
+DEFAULT_PERCENT = 50
 
 
 def percent():
+    raw = _xpi_state.value("percent")
+    if raw in (None, ""):
+        return float(DEFAULT_PERCENT)
     try:
-        value = float(_xpi_state.value("percent") or 0)
+        value = float(raw)
     except (TypeError, ValueError):
-        return 0.0
+        return float(DEFAULT_PERCENT)
     return max(0.0, min(100.0, value))
 
 
 def run_microdot():
     import microdotphat
 
-    width = getattr(microdotphat, "WIDTH", 45)
+    width = _dot.visible_width(getattr(microdotphat, "WIDTH", 45))
     height = getattr(microdotphat, "HEIGHT", 7)
     print("progress.py: microdot-phat bar")
 
@@ -36,7 +41,7 @@ def run_microdot():
             microdotphat.clear()
             for x in range(filled):
                 for y in range(height):
-                    microdotphat.set_pixel(x, y, 1)
+                    microdotphat.set_pixel(_dot.buffer_x(x), y, 1)
             microdotphat.show()
             print("progress.py: %d%%" % value)
         time.sleep(0.2)

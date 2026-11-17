@@ -148,7 +148,7 @@ def run_unicorn(getter):
                 _xpi_state.value("color"), DEFAULT_COLOR)
         _display.draw_unicorn(grid, offset, shape, color)
         offset += 1
-        time.sleep(0.05)
+        time.sleep(_display.scroll_delay(shape))
 
 
 def run_ha():

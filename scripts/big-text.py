@@ -1,8 +1,8 @@
 # big-text.py — one or two characters as large as the board allows.
 #
 # Text comes from state.json "text" (default OK). The microdot-phat shows it
-# with the library font; the 8x4 Unicorn pHAT shows the top four rows of the
-# shared 3x5 font, so short words are best.
+# with the library font; the 8x4 Unicorn pHAT uses the compact 3x4 font so
+# short words fit.
 
 import time
 
@@ -46,13 +46,14 @@ def run_unicorn():
     print("big-text.py: unicorn", value)
 
     def draw(symbols):
-        rows = _display.text_bitmap(symbols)[:height]
+        rows = _display.text_bitmap(symbols, rows=height)
+        y0 = max(0, (height - len(rows)) // 2)
         unicornhat.clear()
         r, g, b = color
         for y, row in enumerate(rows):
             for x, lit in enumerate(row[:width]):
                 if lit:
-                    unicornhat.set_pixel(x, y, r, g, b)
+                    unicornhat.set_pixel(x, y0 + y, r, g, b)
         unicornhat.show()
 
     draw(value)

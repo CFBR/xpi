@@ -36,14 +36,16 @@ def run_unicorn():
     side = flip()
     print("coin.py: unicorn flipped", side)
 
-    grid = _display.text_bitmap(side)
+    grid = _display.text_bitmap(side[0], rows=height)
+    rows = min(len(grid), height)
     r, g, b = color
     unicornhat.clear()
-    x0 = max(0, (width - 4) // 2)
-    for y, row in enumerate(grid[:height]):
-        for x, lit in enumerate(row[:width]):
+    x0 = max(0, (width - len(grid[0])) // 2)
+    y0 = max(0, (height - rows) // 2)
+    for y, row in enumerate(grid[:rows]):
+        for x, lit in enumerate(row):
             if lit:
-                unicornhat.set_pixel(x0 + x, y, r, g, b)
+                unicornhat.set_pixel(x0 + x, y0 + y, r, g, b)
     unicornhat.show()
     while True:
         time.sleep(1)
