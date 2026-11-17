@@ -678,6 +678,15 @@ try {
       <span class="hint">down columns, or right to left across rows</span>
     </div>
 
+    <div class="row">
+      <label class="field" title="Tint every Unicorn effect">unicorn tint
+        <input type="color" id="tintColorPick" value="#00ffff"
+               onchange="setTint(this.value)">
+      </label>
+      <button onclick="clearTint()">Clear tint</button>
+      <span class="hint" id="tintHint">off</span>
+    </div>
+
     <div class="divider"></div>
 
     <div class="cardhead">
@@ -906,6 +915,7 @@ async function refresh() {
   syncSpeed(design);
   syncDensity(design);
   syncSnakePath(design);
+  syncTint(design);
   syncSocial(design);
   syncCommits(design);
   syncCrypto(design);
@@ -1392,6 +1402,27 @@ function customDrawColor(value) {
 
 function setTextColor(value) {
   act('update', 'color=' + encodeURIComponent(value));
+}
+
+var tintInput = document.getElementById("tintColorPick");
+
+function setTint(value) {
+  act('update', 'unicorn_tint=' + encodeURIComponent(value));
+}
+
+function clearTint() {
+  act('update', 'unicorn_tint=');
+}
+
+function syncTint(design) {
+  var value = String((design && design.unicorn_tint) || "");
+  var hint = document.getElementById("tintHint");
+  if (/^#[0-9a-f]{6}$/i.test(value)) {
+    if (document.activeElement !== tintInput) tintInput.value = value;
+    hint.textContent = "on";
+  } else {
+    hint.textContent = "off";
+  }
 }
 
 function keyOf(x, y) { return x + "," + y; }

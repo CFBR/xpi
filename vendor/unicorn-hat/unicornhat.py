@@ -3,6 +3,7 @@
 
 import atexit
 import colorsys
+import time as _time
 from rpi_ws281x import __version__ as __rpi_ws281x__, PixelStrip, Color
 
 __version__ = '2.2.3'
@@ -33,6 +34,10 @@ _applied_scale = None
 _scale_cache = 1.0
 _scale_mtime = None
 
+_tint_cache = None
+_tint_mtime = None
+_tint_last = 0.0
+
 
 def _state_scale():
     global _scale_cache, _scale_mtime
@@ -56,6 +61,36 @@ def _apply_brightness():
     _applied_scale = _state_scale()
     level = int(_base_brightness * _applied_scale * 128.0)
     ws2812.setBrightness(max(0, min(128, level)))
+
+
+def _state_tint():
+    """Read unicorn_tint from state.json, cached for half a second."""
+    global _tint_cache, _tint_mtime, _tint_last
+    now = _time.monotonic()
+    if now - _tint_last < 0.5:
+        return _tint_cache
+    _tint_last = now
+    try:
+        mtime = _os.path.getmtime(_STATE_FILE)
+    except OSError:
+        _tint_cache = None
+        return None
+    if mtime != _tint_mtime:
+        try:
+            with open(_STATE_FILE) as fh:
+                value = _json.load(fh).get("unicorn_tint", "")
+        except (OSError, ValueError, TypeError):
+            value = ""
+        text = str(value).strip().lstrip("#")
+        if len(text) == 3:
+            text = "".join(ch * 2 for ch in text)
+        if len(text) == 6 and all(
+                ch in "0123456789abcdefABCDEF" for ch in text):
+            _tint_cache = tuple(int(text[i:i + 2], 16) for i in (0, 2, 4))
+        else:
+            _tint_cache = None
+        _tint_mtime = mtime
+    return _tint_cache
 
 LED_BRIGHTNESS = 128     # Set to 0 for darkest and 255 for brightest
 LED_CHANNEL    = 0       # PWM channel
@@ -162,7 +197,8 @@ def setup():
 
     ws2812.begin()
 
-    set_layout(HAT)
+    # --- xpi: auto-detect HAT or pHAT; the old HAT default broke pHAT AUTO
+    set_layout(AUTO)
 
     atexit.register(_clean_shutdown)
 
@@ -387,6 +423,13 @@ def set_pixel(x, y, r, g=None, b=None):
     index = get_index_from_xy(x, y)
 
     if index is not None:
+        # --- xpi: optional tint for every Unicorn script
+        tint = _state_tint()
+        if tint is not None and (r or g or b):
+            level = max(r, g, b) / 255.0
+            r = int(tint[0] * level)
+            g = int(tint[1] * level)
+            b = int(tint[2] * level)
         ws2812.setPixelColorRGB(index, r, g, b)
         _pixels[index] = (r, g, b)
 

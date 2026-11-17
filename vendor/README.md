@@ -56,6 +56,18 @@ Pimoroni examples. Scripts can still set their own brightness; `state.json`
 scales whatever they set. `_xpi_state.brightness()` gives a script the value
 directly when it wants to do its own scaling.
 
+`unicornhat.py` also applies an optional tint. When `state.json` has a
+`unicorn_tint` color, `set_pixel()` maps every lit pixel to a shade of that
+color by its brightest channel. That gives the page's tint control reach over
+every Unicorn script, including the Pimoroni examples. The tint is off when
+the key is missing or empty.
+
+`setup()` now calls `set_layout(AUTO)` instead of `set_layout(HAT)`. The old
+HAT default overrode `AUTO` before an example could ask for it, so Pimoroni
+examples that use `set_layout(AUTO)` drew a 16x8 HAT shape on an 8x4 pHAT.
+`AUTO` still picks HAT when the HAT EEPROM is present. The change is marked
+`# --- xpi: auto-detect HAT or pHAT`.
+
 Both `show()` functions also publish the frame they just drew through
 `support/_xpi_frame.py`. That block is marked
 `# --- xpi: publish the frame for the live viewer`. The server serves it at
